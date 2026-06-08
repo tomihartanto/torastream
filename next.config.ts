@@ -17,6 +17,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: "/mangadex-covers/:path*",
+        destination: "https://uploads.mangadex.org/covers/:path*",
+        basePath: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

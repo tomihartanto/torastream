@@ -1,8 +1,6 @@
 const MANGADEX_BASE_URL =
   process.env.NEXT_PUBLIC_MANGADEX_BASE_URL || "https://api.mangadex.org";
 
-const MANGADEX_COVER_BASE = "https://uploads.mangadex.org/covers";
-
 interface MangaDexResponse<T> {
   result: string;
   response: string;
@@ -96,7 +94,7 @@ function getMangaDescription(manga: MangaDexManga): string | null {
 function getCoverUrl(manga: MangaDexManga): string | null {
   const coverRel = manga.relationships.find((r) => r.type === "cover_art");
   if (!coverRel?.attributes?.fileName) return null;
-  return `${MANGADEX_COVER_BASE}/${manga.id}/${coverRel.attributes.fileName}.512.jpg`;
+  return `/mangadex-covers/${manga.id}/${coverRel.attributes.fileName}.512.jpg`;
 }
 
 export interface MangaDexMangaFormatted {
