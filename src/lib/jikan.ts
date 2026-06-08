@@ -136,6 +136,32 @@ export async function getMangaRecommendations(id: number) {
   return fetchJikan<{ entry: MangaData }[]>(`/manga/${id}/recommendations`);
 }
 
+export async function findMangaByTitle(title: string): Promise<MangaData | null> {
+  try {
+    const result = await fetchJikan<MangaData[]>(
+      `/manga?q=${encodeURIComponent(title)}&limit=3&order_by=score&sort=desc`
+    );
+    if (!result.data || result.data.length === 0) return null;
+
+    // Normalize titles for comparison
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const normalizedQuery = normalize(title);
+
+    // Try exact match first
+    const exact = result.data.find(
+      (m) =>
+        normalize(m.title) === normalizedQuery ||
+        normalize(m.title_english || "") === normalizedQuery
+    );
+    if (exact) return exact;
+
+    // Otherwise return first result
+    return result.data[0];
+  } catch {
+    return null;
+  }
+}
+
 export const GENRE_MAP: Record<number, string> = {
   1: "Aksi", 2: "Petualangan", 4: "Komedi", 7: "Misteri", 8: "Drama",
   10: "Fantasi", 11: "Game", 13: "Sejarah", 14: "Horor", 19: "Musik",

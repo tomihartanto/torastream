@@ -1,0 +1,8 @@
+name = "mangadex-proxy"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[env.production]
+routes = [
+  { pattern = "mangadex-proxy.*", custom_domain = false }
+]
