@@ -94,7 +94,7 @@ function getMangaDescription(manga: MangaDexManga): string | null {
 function getCoverUrl(manga: MangaDexManga): string | null {
   const coverRel = manga.relationships.find((r) => r.type === "cover_art");
   if (!coverRel?.attributes?.fileName) return null;
-  return `/mangadex-covers/${manga.id}/${coverRel.attributes.fileName}.512.jpg`;
+  return `/api/mangadex-proxy/covers/${manga.id}/${coverRel.attributes.fileName}.512.jpg`;
 }
 
 export interface MangaDexMangaFormatted {
