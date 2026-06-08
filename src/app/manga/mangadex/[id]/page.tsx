@@ -36,10 +36,10 @@ function groupByVolume<T extends { volume: string | null }>(chapters: T[]) {
 async function MangaDexInfo({ id, lang }: { id: string; lang: "id" | "en" | "all" }) {
   let manga, chaptersData, jikanData: MangaData | null = null;
   try {
-    const selectedLang = lang === "all" ? undefined : lang;
+    // Always fetch all chapters (id + en), filter client-side
     [manga, chaptersData] = await Promise.all([
       getMangaDexById(id),
-      getMangaChapters(id, 100, 0, selectedLang),
+      getMangaChapters(id, 100, 0),
     ]);
 
     try {
@@ -446,7 +446,7 @@ export default async function MangaDexDetailPage({
 }: MangaDexDetailPageProps) {
   const { id } = await params;
   const { lang: langParam } = await searchParams;
-  const lang = langParam === "en" ? "en" : langParam === "all" ? "all" : "id";
+  const lang = langParam === "id" ? "id" : langParam === "all" ? "all" : "en";
 
   return (
     <div className="min-h-screen pb-20 md:pb-12">
