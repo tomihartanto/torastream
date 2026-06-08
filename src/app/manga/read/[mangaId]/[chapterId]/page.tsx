@@ -91,7 +91,7 @@ async function ChapterReader({
         ))}
       </div>
 
-      <AdSlot variant="native" />
+      <AdSlot variant="banner" />
 
       <div className="container mx-auto flex flex-col items-center gap-1 px-0">
         {chapterData.pages.slice(Math.ceil(chapterData.pages.length / 2)).map((url, index) => (

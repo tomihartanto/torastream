@@ -126,7 +126,7 @@ export default function Home() {
         </Suspense>
       </section>
 
-      <AdSlot variant="native" className="container mx-auto px-4" />
+      <AdSlot variant="banner" className="container mx-auto px-4" />
 
       <section className="container mx-auto px-4">
         <SectionHeader title="Anime Terpopuler" href="/browse" />

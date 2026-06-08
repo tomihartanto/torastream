@@ -176,7 +176,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
         <AnimeInfo id={animeId} />
       </Suspense>
 
-      <AdSlot variant="native" />
+      <AdSlot variant="banner" />
 
       <Suspense fallback={<AnimeGridSkeleton count={6} />}>
         <RecommendationsSection id={animeId} />

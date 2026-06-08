@@ -1,66 +1,68 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface AdSlotProps {
-  variant?: "banner" | "rectangle" | "native" | "responsive";
+  variant?: "banner" | "rectangle";
   className?: string;
 }
 
+const AD_SIZES = {
+  banner: { width: 728, height: 90 },
+  rectangle: { width: 300, height: 250 },
+};
+
 export default function AdSlot({
-  variant = "responsive",
+  variant = "banner",
   className,
 }: AdSlotProps) {
-  const bannerId = process.env.NEXT_PUBLIC_ADSTERRA_BANNER_ID;
-  const nativeId = process.env.NEXT_PUBLIC_ADSTERRA_NATIVE_ID;
-  const rectangleId = process.env.NEXT_PUBLIC_ADSTERRA_RECTANGLE_ID;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const bannerKey = process.env.NEXT_PUBLIC_ADSTERRA_BANNER_KEY;
+  const rectangleKey = process.env.NEXT_PUBLIC_ADSTERRA_RECTANGLE_KEY;
 
-  const adIdMap: Record<string, string | undefined> = {
-    banner: bannerId,
-    rectangle: rectangleId,
-    native: nativeId,
-    responsive: bannerId,
+  const keyMap: Record<string, string | undefined> = {
+    banner: bannerKey,
+    rectangle: rectangleKey,
   };
 
-  const sizes: Record<string, string> = {
-    banner: "min-h-[90px]",
-    rectangle: "min-h-[250px]",
-    native: "min-h-[120px]",
-    responsive: "min-h-[100px]",
-  };
+  const key = keyMap[variant];
+  const { width, height } = AD_SIZES[variant];
 
-  const adId = adIdMap[variant];
+  useEffect(() => {
+    if (!key || !containerRef.current) return;
 
-  if (adId) {
-    return (
-      <div className={cn("flex w-full items-center justify-center py-4", className)}>
-        <div
-          id={`adsterra-${variant}-${adId}`}
-          className={cn("w-full max-w-[728px]", sizes[variant])}
-        >
-          <script
-            type="text/javascript"
-            src={`//www.topcreativeformat.com/${adId}/invoke.js`}
-            async
-          />
-        </div>
-      </div>
-    );
-  }
+    const container = containerRef.current;
+
+    const optionsScript = document.createElement("script");
+    optionsScript.innerHTML = `
+      atOptions = {
+        'key' : '${key}',
+        'format' : 'iframe',
+        'height' : ${height},
+        'width' : ${width},
+        'params' : {}
+      };
+    `;
+
+    const invokeScript = document.createElement("script");
+    invokeScript.type = "text/javascript";
+    invokeScript.src = `https://www.highperformanceformat.com/${key}/invoke.js`;
+    invokeScript.async = true;
+
+    container.appendChild(optionsScript);
+    container.appendChild(invokeScript);
+
+    return () => {
+      container.innerHTML = "";
+    };
+  }, [key, width, height]);
+
+  if (!key) return null;
 
   return (
     <div className={cn("flex w-full items-center justify-center py-4", className)}>
-      <div
-        className={cn(
-          "flex w-full max-w-[728px] flex-col items-center justify-center rounded-lg border border-dashed border-zinc-700 bg-zinc-900/50",
-          sizes[variant]
-        )}
-      >
-        <span className="text-[10px] uppercase tracking-widest text-zinc-600">
-          Ad Slot
-        </span>
-        <span className="mt-1 text-xs text-zinc-700">
-          {variant} - isi NEXT_PUBLIC_ADSTERRA_{variant.toUpperCase()}_ID di .env
-        </span>
-      </div>
+      <div ref={containerRef} style={{ minWidth: width, minHeight: height }} />
     </div>
   );
 }
