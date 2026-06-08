@@ -23,8 +23,8 @@ export async function generateMetadata({
 }
 
 // Group chapters by volume
-function groupByVolume(chapters: { volume: string | null; [key: string]: unknown }[]) {
-  const groups: Record<string, (typeof chapters)[0][]> = {};
+function groupByVolume<T extends { volume: string | null }>(chapters: T[]) {
+  const groups: Record<string, T[]> = {};
   for (const ch of chapters) {
     const key = ch.volume || "No Volume";
     if (!groups[key]) groups[key] = [];
