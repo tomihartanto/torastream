@@ -31,7 +31,7 @@ async function PopularMangaSection() {
   return (
     <HorizontalScroll>
       {result.manga.map((m, i) => (
-        <div key={`${m.id}-${i}`} className="w-36 shrink-0 md:w-auto">
+        <div key={`${m.id}-${i}`} className="w-36 shrink-0 sm:w-auto">
           <MangaCard manga={m} />
         </div>
       ))}
@@ -49,7 +49,7 @@ async function RecentMangaSection() {
   return (
     <HorizontalScroll>
       {result.manga.map((m, i) => (
-        <div key={`${m.id}-${i}`} className="w-36 shrink-0 md:w-auto">
+        <div key={`${m.id}-${i}`} className="w-36 shrink-0 sm:w-auto">
           <MangaCard manga={m} />
         </div>
       ))}
@@ -84,29 +84,29 @@ export default async function MangaPage({
   const { q } = await searchParams;
 
   return (
-    <div className="space-y-10 pb-12">
+    <div className="space-y-8 pb-20 md:space-y-10 md:pb-12">
       {/* Hero header */}
       <section className="relative overflow-hidden border-b border-white/5 bg-gradient-to-b from-red-500/5 to-transparent">
-        <div className="container mx-auto px-4 py-10">
-          <h1 className="text-3xl font-black text-white md:text-4xl">
+        <div className="container mx-auto px-4 py-8 sm:py-10">
+          <h1 className="text-2xl font-black text-white sm:text-3xl md:text-4xl">
             Manga
           </h1>
-          <p className="mt-2 text-zinc-400">
+          <p className="mt-2 text-sm text-zinc-400">
             Baca manga terpopuler dan terbaru langsung di browser. Gratis.
           </p>
 
           {/* Search */}
-          <form action="/manga" method="GET" className="mt-6 flex max-w-xl gap-2">
+          <form action="/manga" method="GET" className="mt-5 flex max-w-xl gap-2 sm:mt-6">
             <input
               type="text"
               name="q"
               defaultValue={q || ""}
               placeholder="Cari judul manga..."
-              className="h-11 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+              className="h-10 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:h-11"
             />
             <button
               type="submit"
-              className="rounded-xl bg-red-500 px-6 text-sm font-semibold text-white transition-colors hover:bg-red-600"
+              className="shrink-0 rounded-xl bg-red-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-red-600 sm:px-6"
             >
               Cari
             </button>
@@ -117,7 +117,7 @@ export default async function MangaPage({
       {q ? (
         /* Search results */
         <section className="container mx-auto px-4">
-          <h2 className="mb-4 text-xl font-bold text-white">
+          <h2 className="mb-4 text-lg font-bold text-white sm:text-xl">
             Hasil pencarian: &quot;{q}&quot;
           </h2>
           <Suspense fallback={<MangaGridSkeleton count={12} />}>

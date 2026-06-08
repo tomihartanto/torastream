@@ -1,4 +1,4 @@
-import { translateToId } from "./utils";
+import { translateToId, cleanMangaDescription } from "./utils";
 
 const MANGADEX_BASE_URL =
   process.env.NEXT_PUBLIC_MANGADEX_BASE_URL || "https://api.mangadex.org";
@@ -123,6 +123,9 @@ async function formatManga(manga: MangaDexManga): Promise<MangaDexMangaFormatted
   if (description && desc.lang === "en") {
     description = await translateToId(description);
   }
+
+  // Bersihkan deskripsi dari URL, link, dan metadata
+  description = cleanMangaDescription(description);
 
   return {
     id: manga.id,

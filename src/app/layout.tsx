@@ -19,11 +19,11 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "ToraStream - Anime & Manga Indonesia",
+    default: "ToraStream - Streaming Anime & Baca Manga Indonesia",
     template: "%s | ToraStream",
   },
   description:
-    "Tonton anime dan baca manga gratis dalam Bahasa Indonesia. Katalog anime dan manga terlengkap.",
+    "Streaming anime dan baca manga terlengkap gratis dalam Bahasa Indonesia. Jelajahi ribuan judul anime dan manga dari MyAnimeList & MangaDex.",
 };
 
 export default function RootLayout({

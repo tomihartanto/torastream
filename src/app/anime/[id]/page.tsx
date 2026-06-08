@@ -46,10 +46,10 @@ async function AnimeInfo({ id }: { id: number }) {
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-950/50 to-zinc-950" />
         </div>
 
-        <div className="relative container mx-auto px-4 pt-24 pb-8">
-          <div className="flex flex-col gap-8 md:flex-row md:gap-10">
+        <div className="relative container mx-auto px-4 pt-20 pb-6 sm:pt-24 sm:pb-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:gap-8 md:gap-10">
             {/* Poster */}
-            <div className="relative mx-auto aspect-[2/3] w-full max-w-[200px] shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-2xl shadow-black/50 md:mx-0 md:max-w-[280px]">
+            <div className="relative mx-auto aspect-[2/3] w-full max-w-[160px] shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-2xl shadow-black/50 sm:mx-0 sm:max-w-[200px] md:max-w-[280px]">
               <Image
                 src={data.images.webp.large_image_url}
                 alt={data.title}
@@ -60,13 +60,13 @@ async function AnimeInfo({ id }: { id: number }) {
             </div>
 
             {/* Info */}
-            <div className="flex-1 space-y-5">
+            <div className="flex-1 space-y-4 sm:space-y-5">
               <div>
-                <h1 className="text-2xl font-black leading-tight text-white md:text-3xl lg:text-4xl">
+                <h1 className="text-xl font-black leading-tight text-white sm:text-2xl md:text-3xl lg:text-4xl">
                   {data.title}
                 </h1>
                 {data.title_japanese && (
-                  <p className="mt-1.5 text-sm text-zinc-400">{data.title_japanese}</p>
+                  <p className="mt-1 text-sm text-zinc-400">{data.title_japanese}</p>
                 )}
               </div>
 
@@ -128,7 +128,7 @@ async function AnimeInfo({ id }: { id: number }) {
 
               {/* Synopsis */}
               {synopsis && (
-                <div className="rounded-xl bg-white/[0.03] p-5 ring-1 ring-white/5">
+                <div className="rounded-xl bg-white/[0.03] p-4 ring-1 ring-white/5 sm:p-5">
                   <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-zinc-400">Sinopsis</h2>
                   <p className="text-sm leading-relaxed text-zinc-300">{synopsis}</p>
                 </div>
@@ -139,8 +139,8 @@ async function AnimeInfo({ id }: { id: number }) {
       </div>
 
       {/* Info grid */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-2 gap-3 rounded-2xl bg-white/[0.02] p-5 ring-1 ring-white/5 md:grid-cols-4">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
+        <div className="grid grid-cols-2 gap-3 rounded-2xl bg-white/[0.02] p-4 ring-1 ring-white/5 sm:p-5 md:grid-cols-4">
           {data.studios.length > 0 && (
             <InfoItem label="Studio" value={data.studios.map((s) => s.name).join(", ")} />
           )}
@@ -181,7 +181,7 @@ async function RecommendationsSection({ id }: { id: number }) {
 
   return (
     <div>
-      <h2 className="mb-4 text-xl font-bold text-white">Rekomendasi</h2>
+      <h2 className="mb-4 text-lg font-bold text-white sm:text-xl">Rekomendasi</h2>
       <AnimeGrid animes={recs.data.slice(0, 6).map((r) => r.entry)} />
     </div>
   );
@@ -192,16 +192,16 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
   const animeId = parseInt(id, 10);
 
   return (
-    <div className="min-h-screen space-y-12 pb-12">
+    <div className="min-h-screen space-y-10 pb-20 md:space-y-12 md:pb-12">
       <Suspense
         fallback={
           <div className="container mx-auto px-4 pt-24">
-            <div className="flex flex-col gap-8 md:flex-row">
-              <div className="mx-auto aspect-[2/3] w-full max-w-[280px] animate-pulse rounded-2xl bg-zinc-800 md:mx-0" />
+            <div className="flex flex-col gap-6 sm:flex-row md:gap-8">
+              <div className="mx-auto aspect-[2/3] w-full max-w-[200px] animate-pulse rounded-2xl bg-zinc-800 sm:mx-0 md:max-w-[280px]" />
               <div className="flex-1 space-y-4">
-                <div className="h-8 w-3/4 animate-pulse rounded-lg bg-zinc-800" />
+                <div className="h-7 w-3/4 animate-pulse rounded-lg bg-zinc-800" />
                 <div className="h-4 w-1/2 animate-pulse rounded bg-zinc-800" />
-                <div className="h-40 animate-pulse rounded-xl bg-zinc-800" />
+                <div className="h-32 animate-pulse rounded-xl bg-zinc-800" />
               </div>
             </div>
           </div>
@@ -210,7 +210,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
         <AnimeInfo id={animeId} />
       </Suspense>
 
-      <div className="container mx-auto space-y-12 px-4">
+      <div className="container mx-auto space-y-10 px-4">
         <AdSlot variant="banner" />
 
         <Suspense fallback={<AnimeGridSkeleton count={6} />}>

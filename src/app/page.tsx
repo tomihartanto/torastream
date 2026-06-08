@@ -105,8 +105,8 @@ async function RecentMangaSection() {
 
 export default function Home() {
   return (
-    <div className="space-y-10 pb-12">
-      <Suspense fallback={<div className="h-[400px] animate-pulse bg-zinc-800 md:h-[500px]" />}>
+    <div className="space-y-8 pb-20 md:space-y-10 md:pb-12">
+      <Suspense fallback={<div className="h-[320px] animate-pulse bg-zinc-800 sm:h-[400px] md:h-[500px]" />}>
         <FeaturedBannerSection />
       </Suspense>
 

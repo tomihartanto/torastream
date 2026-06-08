@@ -29,27 +29,27 @@ async function BrowseResults({ searchParams }: { searchParams: Awaited<BrowsePag
     <>
       <AnimeGrid animes={result.data} />
       {result.pagination && (
-        <div className="mt-8 flex items-center justify-center gap-3">
+        <div className="mt-8 flex items-center justify-center gap-2 sm:gap-3">
           {result.pagination.current_page > 1 && (
             <a
               href={`/browse?${new URLSearchParams({ ...searchParams, page: String(pageNum - 1) }).toString()}`}
-              className="flex items-center gap-1.5 rounded-xl bg-white/5 px-4 py-2.5 text-sm font-medium text-white ring-1 ring-white/10 transition-all hover:bg-white/10"
+              className="flex items-center gap-1 rounded-xl bg-white/5 px-3 py-2 text-sm font-medium text-white ring-1 ring-white/10 transition-all hover:bg-white/10 sm:px-4 sm:py-2.5"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Sebelumnya
+              <span className="hidden sm:inline">Sebelumnya</span>
             </a>
           )}
-          <span className="rounded-xl bg-white/[0.03] px-4 py-2.5 text-sm text-zinc-400 ring-1 ring-white/5">
+          <span className="rounded-xl bg-white/[0.03] px-3 py-2 text-sm text-zinc-400 ring-1 ring-white/5 sm:px-4 sm:py-2.5">
             {result.pagination.current_page} / {result.pagination.last_visible_page}
           </span>
           {result.pagination.has_next_page && (
             <a
               href={`/browse?${new URLSearchParams({ ...searchParams, page: String(pageNum + 1) }).toString()}`}
-              className="flex items-center gap-1.5 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-red-600"
+              className="flex items-center gap-1 rounded-xl bg-red-500 px-3 py-2 text-sm font-medium text-white transition-all hover:bg-red-600 sm:px-4 sm:py-2.5"
             >
-              Selanjutnya
+              <span className="hidden sm:inline">Selanjutnya</span>
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -88,15 +88,15 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     : "top";
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-20 md:pb-12">
       {/* Hero header */}
       <section className="relative overflow-hidden border-b border-white/5 bg-gradient-to-b from-blue-500/5 to-transparent">
-        <div className="container mx-auto px-4 py-10">
-          <h1 className="text-3xl font-black text-white md:text-4xl">
+        <div className="container mx-auto px-4 py-8 sm:py-10">
+          <h1 className="text-2xl font-black text-white sm:text-3xl md:text-4xl">
             {pageTitle}
           </h1>
           {!resolvedParams.q && (
-            <p className="mt-2 text-zinc-400">
+            <p className="mt-2 text-sm text-zinc-400">
               Jelajahi koleksi anime terlengkap
             </p>
           )}
@@ -104,47 +104,46 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
       </section>
 
       <div className="container mx-auto space-y-6 px-4">
-
-      {/* Quick filters */}
-      <div className="flex flex-wrap gap-2">
-        {QUICK_FILTERS.map((f) => (
-          <a
-            key={f.key}
-            href={f.href}
-            className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-              activeFilter === f.key
-                ? "bg-red-500 text-white"
-                : "bg-white/5 text-zinc-400 ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
-            }`}
-          >
-            {f.label}
-          </a>
-        ))}
-      </div>
-
-      {/* Genre filters - horizontal scroll on mobile */}
-      <div>
-        <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">Genre</p>
-        <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4 pb-2">
-          {Object.entries(GENRE_MAP).map(([id, name]) => (
+        {/* Quick filters */}
+        <div className="flex flex-wrap gap-2">
+          {QUICK_FILTERS.map((f) => (
             <a
-              key={id}
-              href={`/browse?genre=${id}`}
-              className={`shrink-0 rounded-lg px-3 py-1.5 text-sm transition-all ${
-                resolvedParams.genre === id
-                  ? "bg-red-500/15 text-red-400 ring-1 ring-red-500/20"
-                  : "bg-white/5 text-zinc-400 ring-1 ring-white/5 hover:bg-white/10 hover:text-white"
+              key={f.key}
+              href={f.href}
+              className={`rounded-xl px-3 py-1.5 text-sm font-medium transition-all sm:px-4 sm:py-2 ${
+                activeFilter === f.key
+                  ? "bg-red-500 text-white"
+                  : "bg-white/5 text-zinc-400 ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
               }`}
             >
-              {name}
+              {f.label}
             </a>
           ))}
         </div>
-      </div>
 
-      <Suspense fallback={<AnimeGridSkeleton count={18} />}>
-        <BrowseResults searchParams={resolvedParams} />
-      </Suspense>
+        {/* Genre filters - horizontal scroll on mobile */}
+        <div>
+          <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">Genre</p>
+          <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4 pb-2">
+            {Object.entries(GENRE_MAP).map(([id, name]) => (
+              <a
+                key={id}
+                href={`/browse?genre=${id}`}
+                className={`shrink-0 rounded-lg px-3 py-1.5 text-sm transition-all ${
+                  resolvedParams.genre === id
+                    ? "bg-red-500/15 text-red-400 ring-1 ring-red-500/20"
+                    : "bg-white/5 text-zinc-400 ring-1 ring-white/5 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {name}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <Suspense fallback={<AnimeGridSkeleton count={18} />}>
+          <BrowseResults searchParams={resolvedParams} />
+        </Suspense>
       </div>
     </div>
   );

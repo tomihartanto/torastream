@@ -46,29 +46,29 @@ function getGenreGradient(name: string): string {
 
 export default function GenresPage() {
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-20 md:pb-12">
       {/* Hero header */}
       <section className="relative overflow-hidden border-b border-white/5 bg-gradient-to-b from-violet-500/5 to-transparent">
-        <div className="container mx-auto px-4 py-10">
-          <h1 className="text-3xl font-black text-white md:text-4xl">Genre</h1>
-          <p className="mt-2 text-zinc-400">
-            Pilih genre untuk menjelajahi anime berdasarkan kategori.
+        <div className="container mx-auto px-4 py-8 sm:py-10">
+          <h1 className="text-2xl font-black text-white sm:text-3xl md:text-4xl">Genre</h1>
+          <p className="mt-2 text-sm text-zinc-400">
+            Pilih genre untuk menjelajahi anime berdasarkan kategori favoritmu.
           </p>
         </div>
       </section>
 
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {Object.entries(GENRE_MAP).map(([id, name]) => (
-          <Link
-            key={id}
-            href={`/browse?genre=${id}`}
-            className={`group relative flex items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br px-4 py-5 text-sm font-medium text-zinc-200 ring-1 transition-all hover:scale-[1.02] hover:text-white hover:shadow-lg ${getGenreGradient(name)}`}
-          >
-            <span className="relative z-10">{name}</span>
-          </Link>
-        ))}
-      </div>
+          {Object.entries(GENRE_MAP).map(([id, name]) => (
+            <Link
+              key={id}
+              href={`/browse?genre=${id}`}
+              className={`group relative flex items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br px-3 py-4 text-sm font-medium text-zinc-200 ring-1 transition-all hover:scale-[1.02] hover:text-white hover:shadow-lg sm:px-4 sm:py-5 ${getGenreGradient(name)}`}
+            >
+              <span className="relative z-10">{name}</span>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
