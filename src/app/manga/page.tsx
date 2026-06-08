@@ -2,113 +2,150 @@ import { Suspense } from "react";
 import {
   searchMangaDex,
   getRecentManga,
+  getPopularManga,
 } from "@/lib/mangadex";
 import { MangaGridSkeleton } from "@/components/manga-card-skeleton";
 import MangaGrid from "@/components/manga-grid";
+import SectionHeader from "@/components/section-header";
+import HorizontalScroll from "@/components/horizontal-scroll";
+import MangaCard from "@/components/manga-card";
+import AdSlot from "@/components/ad-slot";
 
-interface MangaBrowsePageProps {
-  searchParams: Promise<{
-    q?: string;
-    page?: string;
-  }>;
+export const dynamic = "force-dynamic";
+
+function ErrorFallback({ message = "Gagal memuat data. Coba lagi nanti." }: { message?: string }) {
+  return (
+    <div className="flex items-center justify-center py-12 text-sm text-zinc-500">
+      <p>{message}</p>
+    </div>
+  );
 }
 
-async function MangaResults({
-  searchParams,
-}: {
-  searchParams: Awaited<MangaBrowsePageProps["searchParams"]>;
-}) {
-  const { q, page = "1" } = searchParams;
-  const pageNum = parseInt(page, 10);
-  const limit = 24;
-  const offset = (pageNum - 1) * limit;
-
+async function PopularMangaSection() {
   let result;
-
   try {
-    if (q) {
-      result = await searchMangaDex(q, limit, offset);
-    } else {
-      result = await getRecentManga(limit, offset);
-    }
+    result = await getPopularManga(12);
   } catch {
-    return (
-      <div className="flex items-center justify-center py-16 text-zinc-500">
-        <p>MangaDex API tidak dapat diakses. Coba lagi nanti.</p>
-      </div>
-    );
+    return <ErrorFallback />;
   }
+  return (
+    <HorizontalScroll>
+      {result.manga.map((m, i) => (
+        <div key={`${m.id}-${i}`} className="w-36 shrink-0 md:w-auto">
+          <MangaCard manga={m} />
+        </div>
+      ))}
+    </HorizontalScroll>
+  );
+}
 
-  const totalPages = Math.ceil(result.total / limit);
+async function RecentMangaSection() {
+  let result;
+  try {
+    result = await getRecentManga(12);
+  } catch {
+    return <ErrorFallback message="Manga sedang tidak tersedia. Coba lagi nanti." />;
+  }
+  return (
+    <HorizontalScroll>
+      {result.manga.map((m, i) => (
+        <div key={`${m.id}-${i}`} className="w-36 shrink-0 md:w-auto">
+          <MangaCard manga={m} />
+        </div>
+      ))}
+    </HorizontalScroll>
+  );
+}
 
+async function MangaSearchResults({ query }: { query: string }) {
+  let result;
+  try {
+    result = await searchMangaDex(query, 24);
+  } catch {
+    return <ErrorFallback />;
+  }
   return (
     <>
       <MangaGrid manga={result.manga} />
-
-      {totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-4">
-          {pageNum > 1 && (
-            <a
-              href={`/manga?${new URLSearchParams({ ...searchParams, page: String(pageNum - 1) }).toString()}`}
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-white transition-colors hover:bg-zinc-800"
-            >
-              Sebelumnya
-            </a>
-          )}
-          <span className="text-sm text-zinc-500">
-            Halaman {pageNum} dari {totalPages}
-          </span>
-          {pageNum < totalPages && (
-            <a
-              href={`/manga?${new URLSearchParams({ ...searchParams, page: String(pageNum + 1) }).toString()}`}
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-white transition-colors hover:bg-zinc-800"
-            >
-              Selanjutnya
-            </a>
-          )}
-        </div>
+      {result.total > 24 && (
+        <p className="mt-4 text-center text-sm text-zinc-500">
+          Menampilkan 24 dari {result.total} hasil
+        </p>
       )}
     </>
   );
 }
 
-export default async function MangaBrowsePage({
+export default async function MangaPage({
   searchParams,
-}: MangaBrowsePageProps) {
-  const resolvedParams = await searchParams;
-
-  let pageTitle = "Manga Terbaru";
-  if (resolvedParams.q) {
-    pageTitle = `Hasil pencarian: "${resolvedParams.q}"`;
-  }
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
 
   return (
-    <div className="container mx-auto space-y-6 px-4 py-8">
-      <h1 className="text-2xl font-bold text-white">{pageTitle}</h1>
+    <div className="space-y-10 pb-12">
+      {/* Hero header */}
+      <section className="relative overflow-hidden border-b border-white/5 bg-gradient-to-b from-red-500/5 to-transparent">
+        <div className="container mx-auto px-4 py-10">
+          <h1 className="text-3xl font-black text-white md:text-4xl">
+            Manga
+          </h1>
+          <p className="mt-2 text-zinc-400">
+            Baca manga terpopuler dan terbaru langsung di browser. Gratis.
+          </p>
 
-      <form action="/manga" method="GET" className="flex gap-2">
-        <input
-          type="text"
-          name="q"
-          placeholder="Cari manga..."
-          defaultValue={resolvedParams.q || ""}
-          className="h-10 flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-4 text-sm text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
-        />
-        <button
-          type="submit"
-          className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600"
-        >
-          Cari
-        </button>
-      </form>
+          {/* Search */}
+          <form action="/manga" method="GET" className="mt-6 flex max-w-xl gap-2">
+            <input
+              type="text"
+              name="q"
+              defaultValue={q || ""}
+              placeholder="Cari judul manga..."
+              className="h-11 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+            />
+            <button
+              type="submit"
+              className="rounded-xl bg-red-500 px-6 text-sm font-semibold text-white transition-colors hover:bg-red-600"
+            >
+              Cari
+            </button>
+          </form>
+        </div>
+      </section>
 
-      <p className="text-xs text-zinc-500">
-        Semua manga di bawah bisa dibaca langsung. Data dari MangaDex.
-      </p>
+      {q ? (
+        /* Search results */
+        <section className="container mx-auto px-4">
+          <h2 className="mb-4 text-xl font-bold text-white">
+            Hasil pencarian: &quot;{q}&quot;
+          </h2>
+          <Suspense fallback={<MangaGridSkeleton count={12} />}>
+            <MangaSearchResults query={q} />
+          </Suspense>
+        </section>
+      ) : (
+        /* Browse sections */
+        <>
+          <section className="container mx-auto px-4">
+            <SectionHeader title="Manga Terpopuler" />
+            <Suspense fallback={<MangaGridSkeleton count={6} />}>
+              <PopularMangaSection />
+            </Suspense>
+          </section>
 
-      <Suspense fallback={<MangaGridSkeleton count={24} />}>
-        <MangaResults searchParams={resolvedParams} />
-      </Suspense>
+          <AdSlot variant="banner" className="container mx-auto px-4" />
+
+          <section className="container mx-auto px-4">
+            <SectionHeader title="Manga Terbaru" />
+            <Suspense fallback={<MangaGridSkeleton count={6} />}>
+              <RecentMangaSection />
+            </Suspense>
+          </section>
+
+          <AdSlot variant="native" className="container mx-auto px-4" />
+        </>
+      )}
     </div>
   );
 }

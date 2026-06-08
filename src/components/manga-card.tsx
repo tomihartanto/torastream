@@ -10,16 +10,16 @@ export default function MangaCard({ manga }: MangaCardProps) {
   return (
     <Link
       href={`/manga/mangadex/${manga.id}`}
-      className="group flex flex-col gap-2"
+      className="group relative flex flex-col"
     >
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-zinc-800">
+      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-zinc-800/50 ring-1 ring-white/5 transition-all duration-300 group-hover:ring-white/15 group-hover:shadow-[0_0_30px_-5px_rgba(239,68,68,0.15)]">
         {manga.coverUrl ? (
           <Image
             src={manga.coverUrl}
             alt={manga.title}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover transition-all duration-500 group-hover:scale-110 group-hover:brightness-110"
             unoptimized
           />
         ) : (
@@ -27,25 +27,44 @@ export default function MangaCard({ manga }: MangaCardProps) {
             <span className="text-xs">No Cover</span>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
+        {/* Gradient overlays */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+        {/* Status badge */}
         {manga.status && (
-          <div className="absolute top-2 right-2 rounded-md bg-black/70 px-2 py-1 text-xs text-green-400 backdrop-blur-sm">
+          <div className={`absolute top-2.5 left-2.5 rounded-lg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-sm ${
+            manga.status === "ongoing"
+              ? "bg-emerald-500/80 text-white"
+              : "bg-blue-500/80 text-white"
+          }`}>
             {manga.status === "ongoing" ? "Ongoing" : "Tamat"}
           </div>
         )}
-      </div>
 
-      <h3 className="line-clamp-2 text-sm font-medium text-zinc-200 transition-colors group-hover:text-white">
-        {manga.title}
-      </h3>
-      <div className="flex items-center gap-2 text-xs text-zinc-500">
-        {manga.year && <span>{manga.year}</span>}
+        {/* Content rating */}
         {manga.contentRating === "suggestive" && (
-          <span className="rounded bg-yellow-500/20 px-1 text-yellow-400">
+          <div className="absolute top-2.5 right-2.5 rounded-lg bg-yellow-500/80 px-2 py-0.5 text-[10px] font-bold text-black backdrop-blur-sm">
             18+
-          </span>
+          </div>
         )}
+
+        {/* Bottom info overlay */}
+        <div className="absolute bottom-0 left-0 right-0 p-3">
+          <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-white drop-shadow-lg">
+            {manga.title}
+          </h3>
+          <div className="mt-1.5 flex items-center gap-2 text-[11px] text-zinc-300/80">
+            {manga.year && <span>{manga.year}</span>}
+            {manga.tags.length > 0 && (
+              <>
+                {manga.year && <span className="text-zinc-500">·</span>}
+                <span className="line-clamp-1">{manga.tags[0]}</span>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </Link>
   );

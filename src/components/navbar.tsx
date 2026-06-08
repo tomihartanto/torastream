@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,6 @@ const navItems = [
 ];
 
 export default function Navbar() {
-  const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
 
@@ -29,14 +28,21 @@ export default function Navbar() {
         className={cn(
           "fixed top-0 z-50 w-full transition-all duration-300",
           scrolled
-            ? "border-b border-zinc-800 bg-black/90 backdrop-blur-lg"
-            : "bg-gradient-to-b from-black/80 to-transparent"
+            ? "border-b border-white/5 bg-zinc-950/80 backdrop-blur-xl"
+            : "bg-gradient-to-b from-zinc-950/90 to-transparent"
         )}
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="text-xl font-bold tracking-tight text-white">
-              Tora<span className="text-red-500">Stream</span>
+          <div className="flex items-center gap-8">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500">
+                <svg className="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                </svg>
+              </div>
+              <span className="text-lg font-bold tracking-tight text-white">
+                Tora<span className="text-red-500">Stream</span>
+              </span>
             </Link>
 
             <nav className="hidden items-center gap-1 md:flex">
@@ -47,64 +53,131 @@ export default function Navbar() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                      "relative rounded-lg px-3.5 py-2 text-sm font-medium transition-all",
                       active
-                        ? "bg-zinc-800 text-white"
+                        ? "text-white"
                         : "text-zinc-400 hover:text-white"
                     )}
                   >
-                    {item.label}
+                    {active && (
+                      <span className="absolute inset-0 rounded-lg bg-white/10 ring-1 ring-white/5" />
+                    )}
+                    <span className="relative">{item.label}</span>
                   </Link>
                 );
               })}
             </nav>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
-              aria-label="Cari"
-            >
-              <SearchIcon />
-            </button>
-          </div>
+          <DesktopSearch />
         </div>
       </header>
-
-      <MobileSearchOverlay
-        open={searchOpen}
-        onClose={() => setSearchOpen(false)}
-      />
 
       <BottomNav pathname={pathname} />
     </>
   );
 }
 
-function BottomNav({ pathname }: { pathname: string }) {
+function DesktopSearch() {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [type, setType] = useState<"anime" | "manga">("anime");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen(true);
+      }
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) {
+      const basePath = type === "anime" ? "/browse" : "/manga";
+      window.location.href = `${basePath}?q=${encodeURIComponent(query.trim())}`;
+    }
+  };
+
   return (
-    <nav className="fixed bottom-0 z-50 w-full border-t border-zinc-800 bg-black/95 backdrop-blur-lg md:hidden">
-      <div className="flex items-center justify-around px-2 py-1">
-        {navItems.map((item) => {
-          const active = pathname === item.href.split("?")[0];
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 rounded-lg py-2 transition-colors",
-                active ? "text-red-500" : "text-zinc-500"
-              )}
-            >
-              <Icon className="h-5 w-5" />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+    <div className="hidden md:block">
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-400 transition-all hover:border-white/20 hover:bg-white/10"
+        >
+          <SearchIcon />
+          <span>Cari anime, manga...</span>
+          <kbd className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500">
+            Ctrl+K
+          </kbd>
+        </button>
+      ) : (
+        <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[20vh]">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+          />
+          <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-2xl shadow-black/50">
+            <form onSubmit={handleSubmit}>
+              <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3">
+                <SearchIcon />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Cari anime, manga..."
+                  className="flex-1 bg-transparent text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="rounded-md border border-white/10 px-1.5 py-0.5 text-[10px] text-zinc-500"
+                >
+                  ESC
+                </button>
+              </div>
+              <div className="flex gap-1 p-2">
+                <button
+                  type="button"
+                  onClick={() => setType("anime")}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
+                    type === "anime"
+                      ? "bg-red-500 text-white"
+                      : "text-zinc-400 hover:bg-white/5"
+                  )}
+                >
+                  Anime
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setType("manga")}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
+                    type === "manga"
+                      ? "bg-red-500 text-white"
+                      : "text-zinc-400 hover:bg-white/5"
+                  )}
+                >
+                  Manga
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -129,17 +202,17 @@ function MobileSearchOverlay({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-lg">
+    <div className="fixed inset-0 z-[60] bg-zinc-950/98 backdrop-blur-xl md:hidden">
       <div className="mx-auto max-w-2xl px-4 pt-4">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-2">
+          <div className="flex gap-1 rounded-xl bg-white/5 p-1">
             <button
               onClick={() => setType("anime")}
               className={cn(
-                "rounded-lg px-4 py-1.5 text-sm font-medium transition-colors",
+                "rounded-lg px-4 py-1.5 text-sm font-medium transition-all",
                 type === "anime"
                   ? "bg-red-500 text-white"
-                  : "bg-zinc-800 text-zinc-400"
+                  : "text-zinc-400"
               )}
             >
               Anime
@@ -147,10 +220,10 @@ function MobileSearchOverlay({
             <button
               onClick={() => setType("manga")}
               className={cn(
-                "rounded-lg px-4 py-1.5 text-sm font-medium transition-colors",
+                "rounded-lg px-4 py-1.5 text-sm font-medium transition-all",
                 type === "manga"
                   ? "bg-red-500 text-white"
-                  : "bg-zinc-800 text-zinc-400"
+                  : "text-zinc-400"
               )}
             >
               Manga
@@ -158,7 +231,7 @@ function MobileSearchOverlay({
           </div>
           <button
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-white"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/5 hover:text-white"
             aria-label="Tutup"
           >
             <CloseIcon />
@@ -172,7 +245,7 @@ function MobileSearchOverlay({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={`Cari ${type}...`}
-            className="h-12 flex-1 rounded-xl border border-zinc-700 bg-zinc-900 px-4 text-base text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none"
+            className="h-12 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-base text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none"
           />
           <button
             type="submit"
@@ -186,9 +259,60 @@ function MobileSearchOverlay({
   );
 }
 
+function BottomNav({ pathname }: { pathname: string }) {
+  return (
+    <>
+      {/* Search trigger for mobile */}
+      <MobileSearchButton />
+
+      <nav className="fixed bottom-0 z-50 w-full border-t border-white/5 bg-zinc-950/90 backdrop-blur-xl md:hidden">
+        <div className="flex items-center justify-around px-2 py-1 safe-bottom">
+          {navItems.map((item) => {
+            const active = pathname === item.href.split("?")[0];
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "relative flex flex-1 flex-col items-center gap-0.5 rounded-lg py-2 transition-all",
+                  active ? "text-red-500" : "text-zinc-500"
+                )}
+              >
+                {active && (
+                  <span className="absolute -top-1 h-0.5 w-6 rounded-full bg-red-500" />
+                )}
+                <Icon className="h-5 w-5" />
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </>
+  );
+}
+
+function MobileSearchButton() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="fixed bottom-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-red-500 text-white shadow-lg shadow-red-500/25 transition-all hover:bg-red-600 md:hidden"
+        aria-label="Cari"
+      >
+        <SearchIcon />
+      </button>
+      <MobileSearchOverlay open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
 function SearchIcon() {
   return (
-    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
     </svg>
   );

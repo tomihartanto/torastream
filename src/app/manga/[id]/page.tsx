@@ -7,6 +7,7 @@ import {
 } from "@/lib/jikan";
 import { getMangaChapters } from "@/lib/mangadex";
 import { MangaGridSkeleton } from "@/components/manga-card-skeleton";
+import AdSlot from "@/components/ad-slot";
 import type { Metadata } from "next";
 
 interface MangaDetailPageProps {
@@ -33,112 +34,139 @@ async function MangaInfo({ id }: { id: number }) {
   const data = manga.data;
 
   return (
-    <div className="flex flex-col gap-8 md:flex-row">
-      <div className="relative mx-auto aspect-[2/3] w-full max-w-[300px] shrink-0 overflow-hidden rounded-lg md:mx-0">
-        <Image
-          src={data.images.webp.large_image_url}
-          alt={data.title}
-          fill
-          priority
-          className="object-cover"
-        />
-      </div>
-
-      <div className="flex-1 space-y-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white md:text-3xl">
-            {data.title}
-          </h1>
-          {data.title_japanese && (
-            <p className="mt-1 text-sm text-zinc-400">{data.title_japanese}</p>
-          )}
+    <>
+      {/* Hero background blur */}
+      <div className="relative -mt-16 overflow-hidden">
+        <div className="absolute inset-0">
+          <Image
+            src={data.images.webp.large_image_url}
+            alt=""
+            fill
+            className="object-cover blur-2xl scale-110"
+            aria-hidden
+          />
+          <div className="absolute inset-0 bg-zinc-950/80" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-950/50 to-zinc-950" />
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {data.genres.map((genre) => (
-            <Link
-              key={genre.mal_id}
-              href={`/manga?genre=${genre.mal_id}`}
-              className="rounded-md bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
-            >
-              {genre.name}
-            </Link>
-          ))}
-        </div>
+        <div className="relative container mx-auto px-4 pt-24 pb-8">
+          <div className="flex flex-col gap-8 md:flex-row md:gap-10">
+            {/* Poster */}
+            <div className="relative mx-auto aspect-[2/3] w-full max-w-[200px] shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-2xl shadow-black/50 md:mx-0 md:max-w-[280px]">
+              <Image
+                src={data.images.webp.large_image_url}
+                alt={data.title}
+                fill
+                priority
+                className="object-cover"
+              />
+            </div>
 
-        {data.score && (
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 rounded-lg bg-yellow-500/10 px-4 py-2">
-              <svg className="h-5 w-5 fill-yellow-500" viewBox="0 0 20 20">
-                <path d="M10 1l2.598 5.266L18 7.27l-4 3.898L14.598 17 10 14.266 5.402 17 6 11.168 2 7.27l5.402-1.004L10 1z" />
-              </svg>
-              <span className="text-lg font-bold text-yellow-500">
-                {data.score}
-              </span>
-              {data.scored_by && (
-                <span className="text-sm text-zinc-400">
-                  ({data.scored_by.toLocaleString()} penilaian)
-                </span>
+            {/* Info */}
+            <div className="flex-1 space-y-5">
+              <div>
+                <h1 className="text-2xl font-black leading-tight text-white md:text-3xl lg:text-4xl">
+                  {data.title}
+                </h1>
+                {data.title_japanese && (
+                  <p className="mt-1.5 text-sm text-zinc-400">{data.title_japanese}</p>
+                )}
+              </div>
+
+              {/* Badges row */}
+              <div className="flex flex-wrap items-center gap-2">
+                {data.type && (
+                  <span className="rounded-lg bg-red-500/15 px-2.5 py-1 text-xs font-semibold text-red-400 ring-1 ring-red-500/20">
+                    {data.type}
+                  </span>
+                )}
+                {data.score && (
+                  <span className="flex items-center gap-1.5 rounded-lg bg-yellow-500/15 px-2.5 py-1 text-xs font-semibold text-yellow-400 ring-1 ring-yellow-500/20">
+                    <svg className="h-3.5 w-3.5 fill-yellow-400" viewBox="0 0 20 20">
+                      <path d="M10 1l2.598 5.266L18 7.27l-4 3.898L14.598 17 10 14.266 5.402 17 6 11.168 2 7.27l5.402-1.004L10 1z" />
+                    </svg>
+                    {data.score.toFixed(1)}
+                    {data.scored_by && (
+                      <span className="font-normal text-yellow-400/60">
+                        ({data.scored_by.toLocaleString()})
+                      </span>
+                    )}
+                  </span>
+                )}
+                {data.chapters && (
+                  <span className="rounded-lg bg-white/5 px-2.5 py-1 text-xs font-medium text-zinc-300 ring-1 ring-white/10">
+                    {data.chapters} Chapter
+                  </span>
+                )}
+                {data.status && (
+                  <span className={`rounded-lg px-2.5 py-1 text-xs font-medium ring-1 ${
+                    data.status === "Publishing"
+                      ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
+                      : data.status === "Finished"
+                      ? "bg-blue-500/15 text-blue-400 ring-blue-500/20"
+                      : "bg-white/5 text-zinc-300 ring-white/10"
+                  }`}>
+                    {data.status}
+                  </span>
+                )}
+              </div>
+
+              {/* Genres */}
+              <div className="flex flex-wrap gap-1.5">
+                {data.genres.map((genre) => (
+                  <Link
+                    key={genre.mal_id}
+                    href={`/browse?genre=${genre.mal_id}`}
+                    className="rounded-lg bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 ring-1 ring-white/5 transition-all hover:bg-white/10 hover:text-white"
+                  >
+                    {genre.name}
+                  </Link>
+                ))}
+              </div>
+
+              {/* Synopsis */}
+              {data.synopsis && (
+                <div className="rounded-xl bg-white/[0.03] p-5 ring-1 ring-white/5">
+                  <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-zinc-400">Sinopsis</h2>
+                  <p className="text-sm leading-relaxed text-zinc-300">{data.synopsis}</p>
+                </div>
               )}
             </div>
-            {data.rank && (
-              <span className="text-sm text-zinc-400">
-                Peringkat #{data.rank}
-              </span>
-            )}
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4 md:grid-cols-3">
-          <div>
-            <p className="text-xs text-zinc-500">Tipe</p>
-            <p className="text-sm font-medium text-white">{data.type || "-"}</p>
-          </div>
-          <div>
-            <p className="text-xs text-zinc-500">Chapter</p>
-            <p className="text-sm font-medium text-white">
-              {data.chapters || "Belum diketahui"}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-zinc-500">Volume</p>
-            <p className="text-sm font-medium text-white">
-              {data.volumes || "Belum diketahui"}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-zinc-500">Status</p>
-            <p className="text-sm font-medium text-white">
-              {data.status || "-"}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-zinc-500">Penulis</p>
-            <p className="text-sm font-medium text-white">
-              {data.authors.map((a) => a.name).join(", ") || "-"}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-zinc-500">Serialisasi</p>
-            <p className="text-sm font-medium text-white">
-              {data.serializations.map((s) => s.name).join(", ") || "-"}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-zinc-500">Diterbitkan</p>
-            <p className="text-sm font-medium text-white">
-              {data.published.string || "-"}
-            </p>
           </div>
         </div>
-
-        {data.synopsis && (
-          <div>
-            <h2 className="mb-2 text-lg font-semibold text-white">Sinopsis</h2>
-            <p className="leading-relaxed text-zinc-300">{data.synopsis}</p>
-          </div>
-        )}
       </div>
+
+      {/* Info grid */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-2 gap-3 rounded-2xl bg-white/[0.02] p-5 ring-1 ring-white/5 md:grid-cols-4">
+          {data.volumes && (
+            <InfoItem label="Volume" value={`${data.volumes}`} />
+          )}
+          {data.authors.length > 0 && (
+            <InfoItem label="Penulis" value={data.authors.map((a) => a.name).join(", ")} />
+          )}
+          {data.serializations.length > 0 && (
+            <InfoItem label="Serialisasi" value={data.serializations.map((s) => s.name).join(", ")} />
+          )}
+          <InfoItem label="Diterbitkan" value={data.published.string || "-"} />
+          {data.rank && (
+            <InfoItem label="Peringkat" value={`#${data.rank}`} />
+          )}
+          {data.popularity && (
+            <InfoItem label="Popularitas" value={`#${data.popularity}`} />
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function InfoItem({ label, value }: { label: string; value: string | null }) {
+  if (!value) return null;
+  return (
+    <div>
+      <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">{label}</p>
+      <p className="mt-1 text-sm font-medium text-white">{value}</p>
     </div>
   );
 }
@@ -167,8 +195,11 @@ async function ChapterList({ malId }: { malId: number }) {
 
   if (!mangadexId) {
     return (
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 text-center">
-        <p className="text-zinc-400">
+      <div className="rounded-xl bg-white/[0.03] p-6 text-center ring-1 ring-white/5">
+        <svg className="mx-auto h-10 w-10 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+        <p className="mt-3 text-zinc-400">
           Chapter tidak tersedia untuk manga ini.
         </p>
         <p className="mt-1 text-xs text-zinc-600">
@@ -190,8 +221,8 @@ async function ChapterList({ malId }: { malId: number }) {
 
   if (chapters.length === 0) {
     return (
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 text-center text-zinc-400">
-        Belum ada chapter tersedia.
+      <div className="rounded-xl bg-white/[0.03] p-6 text-center ring-1 ring-white/5">
+        <p className="text-zinc-400">Belum ada chapter tersedia.</p>
       </div>
     );
   }
@@ -204,27 +235,27 @@ async function ChapterList({ malId }: { malId: number }) {
           {chapters.length} chapter
         </span>
       </div>
-      <div className="max-h-[600px] overflow-y-auto rounded-lg border border-zinc-800">
+      <div className="max-h-[400px] overflow-y-auto rounded-xl ring-1 ring-white/5 md:max-h-[600px]">
         {chapters.map((ch) => (
           <Link
             key={ch.id}
             href={`/manga/read/${mangadexId}/${ch.id}`}
-            className="flex items-center justify-between border-b border-zinc-800 px-4 py-3 transition-colors last:border-0 hover:bg-zinc-900"
+            className="flex items-center justify-between border-b border-white/5 px-4 py-3 transition-colors last:border-0 hover:bg-white/[0.03]"
           >
-            <div>
+            <div className="min-w-0 flex-1">
               <span className="font-medium text-white">
                 {ch.volume ? `Vol ${ch.volume} ` : ""}
                 Chapter {ch.chapter || "N/A"}
               </span>
               {ch.title && (
-                <span className="ml-2 text-zinc-400">- {ch.title}</span>
+                <span className="ml-2 text-zinc-400 truncate">- {ch.title}</span>
               )}
             </div>
-            <div className="flex items-center gap-3 text-xs text-zinc-500">
-              <span className="rounded bg-zinc-800 px-2 py-0.5">
+            <div className="flex shrink-0 items-center gap-3 text-xs text-zinc-500">
+              <span className="rounded-lg bg-white/5 px-2 py-0.5 ring-1 ring-white/5">
                 {ch.translatedLanguage === "id" ? "ID" : "EN"}
               </span>
-              {ch.scanlationGroup && <span>{ch.scanlationGroup}</span>}
+              {ch.scanlationGroup && <span className="hidden sm:inline">{ch.scanlationGroup}</span>}
             </div>
           </Link>
         ))}
@@ -249,14 +280,16 @@ async function RecommendationsSection({ id }: { id: number }) {
               href={`/manga/${manga.mal_id}`}
               className="group flex flex-col gap-2"
             >
-              <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-zinc-800">
-                <img
+              <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-zinc-800 ring-1 ring-white/5 transition-all group-hover:ring-white/15">
+                <Image
                   src={
                     manga.images.webp.large_image_url ||
                     manga.images.jpg.large_image_url
                   }
                   alt={manga.title}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
               </div>
               <h3 className="line-clamp-2 text-sm font-medium text-zinc-200 transition-colors group-hover:text-white">
@@ -277,15 +310,17 @@ export default async function MangaDetailPage({
   const mangaId = parseInt(id, 10);
 
   return (
-    <div className="container mx-auto space-y-12 px-4 py-8">
+    <div className="min-h-screen space-y-12 pb-12">
       <Suspense
         fallback={
-          <div className="flex flex-col gap-8 md:flex-row">
-            <div className="mx-auto aspect-[2/3] w-full max-w-[300px] animate-pulse rounded-lg bg-zinc-800 md:mx-0" />
-            <div className="flex-1 space-y-4">
-              <div className="h-8 w-3/4 animate-pulse rounded bg-zinc-800" />
-              <div className="h-4 w-1/2 animate-pulse rounded bg-zinc-800" />
-              <div className="h-40 animate-pulse rounded-lg bg-zinc-800" />
+          <div className="container mx-auto px-4 pt-24">
+            <div className="flex flex-col gap-8 md:flex-row">
+              <div className="mx-auto aspect-[2/3] w-full max-w-[280px] animate-pulse rounded-2xl bg-zinc-800 md:mx-0" />
+              <div className="flex-1 space-y-4">
+                <div className="h-8 w-3/4 animate-pulse rounded-lg bg-zinc-800" />
+                <div className="h-4 w-1/2 animate-pulse rounded bg-zinc-800" />
+                <div className="h-40 animate-pulse rounded-xl bg-zinc-800" />
+              </div>
             </div>
           </div>
         }
@@ -293,22 +328,28 @@ export default async function MangaDetailPage({
         <MangaInfo id={mangaId} />
       </Suspense>
 
-      <Suspense
-        fallback={
-          <div className="space-y-2">
-            <div className="h-6 w-40 animate-pulse rounded bg-zinc-800" />
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-12 animate-pulse rounded bg-zinc-800" />
-            ))}
-          </div>
-        }
-      >
-        <ChapterList malId={mangaId} />
-      </Suspense>
+      <div className="container mx-auto space-y-12 px-4">
+        <Suspense
+          fallback={
+            <div className="space-y-2">
+              <div className="h-6 w-40 animate-pulse rounded bg-zinc-800" />
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="h-12 animate-pulse rounded bg-zinc-800" />
+              ))}
+            </div>
+          }
+        >
+          <ChapterList malId={mangaId} />
+        </Suspense>
 
-      <Suspense fallback={<MangaGridSkeleton count={6} />}>
-        <RecommendationsSection id={mangaId} />
-      </Suspense>
+        <AdSlot variant="banner" />
+
+        <Suspense fallback={<MangaGridSkeleton count={6} />}>
+          <RecommendationsSection id={mangaId} />
+        </Suspense>
+
+        <AdSlot variant="banner" />
+      </div>
     </div>
   );
 }

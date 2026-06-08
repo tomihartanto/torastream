@@ -37,32 +37,35 @@ async function ChapterReader({
   const prevChapter = currentIndex < chapters.length - 1 ? chapters[currentIndex + 1] : null;
   const nextChapter = currentIndex > 0 ? chapters[currentIndex - 1] : null;
 
+  const chapterTitle = `${chapterData.chapter ? `Chapter ${chapterData.chapter}` : "Chapter"}${chapterData.title ? `: ${chapterData.title}` : ""}`;
+
   return (
-    <div className="space-y-4">
-      <div className="sticky top-16 z-40 border-b border-zinc-800 bg-zinc-950/95 px-4 py-3 backdrop-blur-md">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+    <div className="min-h-screen">
+      {/* Top bar */}
+      <div className="sticky top-16 z-40 border-b border-white/5 bg-zinc-950/90 backdrop-blur-xl">
+        <div className="container mx-auto flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-4 min-w-0">
             <Link
               href={`/manga/mangadex/${mangaId}`}
-              className="text-sm text-zinc-400 transition-colors hover:text-white"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
             >
-              &larr; Kembali
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
             </Link>
-            <h1 className="text-sm font-medium text-white">
-              {manga.title}
-              {" - "}
-              {chapterData.chapter
-                ? `Chapter ${chapterData.chapter}`
-                : "Chapter"}
-              {chapterData.title ? `: ${chapterData.title}` : ""}
-            </h1>
+            <div className="min-w-0">
+              <p className="text-xs text-zinc-500 truncate">{manga.title}</p>
+              <h1 className="text-sm font-medium text-white truncate">
+                {chapterTitle}
+              </h1>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {prevChapter && (
               <Link
                 href={`/manga/read/${mangaId}/${prevChapter.id}`}
-                className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-white transition-colors hover:bg-zinc-800"
+                className="rounded-xl bg-white/5 px-3 py-2 text-xs font-medium text-zinc-300 ring-1 ring-white/10 transition-all hover:bg-white/10 hover:text-white"
               >
                 Prev
               </Link>
@@ -70,7 +73,7 @@ async function ChapterReader({
             {nextChapter && (
               <Link
                 href={`/manga/read/${mangaId}/${nextChapter.id}`}
-                className="rounded-lg border border-red-500 bg-red-500/20 px-3 py-1.5 text-xs text-red-400 transition-colors hover:bg-red-500/30"
+                className="rounded-xl bg-red-500 px-3 py-2 text-xs font-medium text-white transition-all hover:bg-red-600"
               >
                 Next
               </Link>
@@ -79,8 +82,9 @@ async function ChapterReader({
         </div>
       </div>
 
-      <div className="container mx-auto flex flex-col items-center gap-1 px-0">
-        {chapterData.pages.slice(0, Math.ceil(chapterData.pages.length / 2)).map((url, index) => (
+      {/* Pages */}
+      <div className="container mx-auto flex flex-col items-center">
+        {chapterData.pages.map((url, index) => (
           <img
             key={index}
             src={url}
@@ -91,37 +95,32 @@ async function ChapterReader({
         ))}
       </div>
 
-      <AdSlot variant="banner" />
-
-      <div className="container mx-auto flex flex-col items-center gap-1 px-0">
-        {chapterData.pages.slice(Math.ceil(chapterData.pages.length / 2)).map((url, index) => (
-          <img
-            key={index}
-            src={url}
-            alt={`Halaman ${Math.ceil(chapterData.pages.length / 2) + index + 1}`}
-            className="w-full max-w-4xl"
-            loading="lazy"
-          />
-        ))}
-      </div>
-
-      <div className="container mx-auto flex items-center justify-center gap-4 py-8">
-        {prevChapter && (
-          <Link
-            href={`/manga/read/${mangaId}/${prevChapter.id}`}
-            className="rounded-lg border border-zinc-700 bg-zinc-900 px-6 py-2 text-sm text-white transition-colors hover:bg-zinc-800"
-          >
-            Chapter Sebelumnya
-          </Link>
-        )}
-        {nextChapter && (
-          <Link
-            href={`/manga/read/${mangaId}/${nextChapter.id}`}
-            className="rounded-lg border border-red-500 bg-red-500/20 px-6 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/30"
-          >
-            Chapter Selanjutnya
-          </Link>
-        )}
+      {/* Bottom navigation */}
+      <div className="border-t border-white/5 bg-zinc-950/90 backdrop-blur-xl">
+        <div className="container mx-auto flex items-center justify-center gap-4 px-4 py-6">
+          {prevChapter && (
+            <Link
+              href={`/manga/read/${mangaId}/${prevChapter.id}`}
+              className="flex items-center gap-2 rounded-xl bg-white/5 px-6 py-3 text-sm font-medium text-white ring-1 ring-white/10 transition-all hover:bg-white/10"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Chapter Sebelumnya
+            </Link>
+          )}
+          {nextChapter && (
+            <Link
+              href={`/manga/read/${mangaId}/${nextChapter.id}`}
+              className="flex items-center gap-2 rounded-xl bg-red-500 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-red-600"
+            >
+              Chapter Selanjutnya
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -133,7 +132,7 @@ function ChapterReaderSkeleton() {
       {Array.from({ length: 5 }).map((_, i) => (
         <div
           key={i}
-          className="mx-auto h-[800px] max-w-4xl w-full animate-pulse bg-zinc-800"
+          className="mx-auto h-[800px] max-w-4xl w-full animate-pulse bg-zinc-800/50"
         />
       ))}
     </div>

@@ -26,6 +26,10 @@ export default function AdSlot({
     rectangle: rectangleKey,
   };
 
+  const adsEnabled = process.env.NEXT_PUBLIC_ADS_ENABLED === "true";
+
+  if (!adsEnabled) return null;
+
   const key = keyMap[variant];
   const { width, height } = AD_SIZES[variant];
 

@@ -64,7 +64,7 @@ export default function FeaturedBanner({ anime }: FeaturedBannerProps) {
             </div>
 
             {anime.synopsis && (
-              <p className="hidden line-clamp-2 text-sm leading-relaxed text-zinc-300 md:block">
+              <p className="line-clamp-2 text-sm leading-relaxed text-zinc-300 md:line-clamp-3">
                 {anime.synopsis}
               </p>
             )}

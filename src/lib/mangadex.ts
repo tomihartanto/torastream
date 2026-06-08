@@ -1,3 +1,5 @@
+import { translateToId } from "./utils";
+
 const MANGADEX_BASE_URL =
   process.env.NEXT_PUBLIC_MANGADEX_BASE_URL || "https://api.mangadex.org";
 
@@ -74,6 +76,8 @@ export interface MangaDexChapterPages {
 
 function getMangaTitle(manga: MangaDexManga): string {
   return (
+    manga.attributes.title.id ||
+    manga.attributes.title["id-ro"] ||
     manga.attributes.title.en ||
     manga.attributes.title.jp ||
     manga.attributes.title["ja-ro"] ||
@@ -82,13 +86,17 @@ function getMangaTitle(manga: MangaDexManga): string {
   );
 }
 
-function getMangaDescription(manga: MangaDexManga): string | null {
-  return (
-    manga.attributes.description.en ||
-    manga.attributes.description.id ||
-    manga.attributes.description.jp ||
-    null
-  );
+function getMangaDescription(manga: MangaDexManga): { text: string | null; lang: string } {
+  if (manga.attributes.description.id) {
+    return { text: manga.attributes.description.id, lang: "id" };
+  }
+  if (manga.attributes.description.en) {
+    return { text: manga.attributes.description.en, lang: "en" };
+  }
+  if (manga.attributes.description.jp) {
+    return { text: manga.attributes.description.jp, lang: "jp" };
+  }
+  return { text: null, lang: "none" };
 }
 
 function getCoverUrl(manga: MangaDexManga): string | null {
@@ -108,11 +116,18 @@ export interface MangaDexMangaFormatted {
   tags: string[];
 }
 
-function formatManga(manga: MangaDexManga): MangaDexMangaFormatted {
+async function formatManga(manga: MangaDexManga): Promise<MangaDexMangaFormatted> {
+  const desc = getMangaDescription(manga);
+  let description = desc.text;
+
+  if (description && desc.lang === "en") {
+    description = await translateToId(description);
+  }
+
   return {
     id: manga.id,
     title: getMangaTitle(manga),
-    description: getMangaDescription(manga),
+    description,
     status: manga.attributes.status,
     year: manga.attributes.year,
     coverUrl: getCoverUrl(manga),
@@ -157,10 +172,11 @@ export async function searchMangaDex(
   params.append("contentRating[]", "safe");
   params.append("contentRating[]", "suggestive");
   params.set("order[followedCount]", "desc");
+  params.set("hasAvailableChapters", "true");
 
   const res = await fetchMangaDex<MangaDexManga[]>(`/manga?${params}`);
   return {
-    manga: res.data.map(formatManga),
+    manga: await Promise.all(res.data.map(formatManga)),
     total: res.total || 0,
   };
 }
@@ -172,7 +188,7 @@ export async function getMangaDexById(
     "includes[]": "cover_art",
   });
   const res = await fetchMangaDex<MangaDexManga>(`/manga/${id}?${params}`);
-  return formatManga(res.data);
+  return await formatManga(res.data);
 }
 
 export interface MangaDexChapterFormatted {
@@ -195,14 +211,16 @@ export async function getMangaChapters(
   params.append("manga", mangaId);
   params.set("limit", String(Math.min(limit, 100)));
   params.set("offset", String(offset));
-  params.append("translatedLanguage[]", "en");
   params.append("translatedLanguage[]", "id");
+  params.append("translatedLanguage[]", "en");
   params.append("includes[]", "scanlation_group");
   params.set("order[chapter]", "desc");
 
   const res = await fetchMangaDex<MangaDexChapter[]>(`/chapter?${params}`);
-  return {
-    chapters: res.data.map((ch) => ({
+
+  const allChapters = res.data
+    .filter((ch) => ch.attributes.pages > 0)
+    .map((ch) => ({
       id: ch.id,
       chapter: ch.attributes.chapter,
       volume: ch.attributes.volume,
@@ -213,7 +231,18 @@ export async function getMangaChapters(
       scanlationGroup:
         ch.relationships.find((r) => r.type === "scanlation_group")?.attributes
           ?.name || null,
-    })),
+    }));
+
+  // Sort: ID chapters first, then EN
+  allChapters.sort((a, b) => {
+    const aId = a.translatedLanguage === "id" ? 0 : 1;
+    const bId = b.translatedLanguage === "id" ? 0 : 1;
+    if (aId !== bId) return aId - bId;
+    return 0;
+  });
+
+  return {
+    chapters: allChapters,
     total: res.total || 0,
   };
 }
@@ -221,13 +250,18 @@ export async function getMangaChapters(
 export async function getChapterPages(
   chapterId: string
 ): Promise<{ pages: string[]; chapter: string | null; title: string | null }> {
-  const res = await fetch(
-    `${MANGADEX_BASE_URL}/at-home/server/${chapterId}`,
-    { next: { revalidate: 3600 } }
-  );
+  let res: Response;
+  try {
+    res = await fetch(
+      `${MANGADEX_BASE_URL}/at-home/server/${chapterId}`,
+      { next: { revalidate: 3600 } }
+    );
+  } catch {
+    throw new Error("Gagal memuat halaman chapter. MangaDex tidak dapat diakses. Coba lagi nanti.");
+  }
 
   if (!res.ok) {
-    throw new Error(`MangaDex API error: ${res.status}`);
+    throw new Error(`Gagal memuat halaman chapter (error ${res.status}). Coba lagi nanti.`);
   }
 
   const data: MangaDexChapterPages = await res.json();
@@ -261,7 +295,27 @@ export async function getRecentManga(
 
   const res = await fetchMangaDex<MangaDexManga[]>(`/manga?${params}`);
   return {
-    manga: res.data.map(formatManga),
+    manga: await Promise.all(res.data.map(formatManga)),
+    total: res.total || 0,
+  };
+}
+
+export async function getPopularManga(
+  limit = 12,
+  offset = 0
+): Promise<{ manga: MangaDexMangaFormatted[]; total: number }> {
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  params.append("includes[]", "cover_art");
+  params.append("contentRating[]", "safe");
+  params.append("contentRating[]", "suggestive");
+  params.set("order[followedCount]", "desc");
+  params.set("hasAvailableChapters", "true");
+
+  const res = await fetchMangaDex<MangaDexManga[]>(`/manga?${params}`);
+  return {
+    manga: await Promise.all(res.data.map(formatManga)),
     total: res.total || 0,
   };
 }
