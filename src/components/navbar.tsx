@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { LogoFull } from "@/components/logo";
 
 const navItems = [
   { href: "/", label: "Beranda", icon: HomeIcon },
@@ -35,14 +36,7 @@ export default function Navbar() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500">
-                <svg className="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                </svg>
-              </div>
-              <span className="text-lg font-bold tracking-tight text-white">
-                Tora<span className="text-red-500">Stream</span>
-              </span>
+              <LogoFull />
             </Link>
 
             <nav className="hidden items-center gap-1 md:flex">

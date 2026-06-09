@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LogoFull } from "@/components/logo";
 
 export default function Footer() {
   return (
@@ -7,16 +8,7 @@ export default function Footer() {
         <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
           {/* Brand */}
           <div className="sm:col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-500">
-                <svg className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                </svg>
-              </div>
-              <span className="text-base font-bold text-white">
-                Tora<span className="text-red-500">Stream</span>
-              </span>
-            </Link>
+            <LogoFull />
             <p className="mt-3 text-sm leading-relaxed text-zinc-500">
               Platform streaming anime dan baca manga gratis berbahasa Indonesia.
               Katalog terlengkap dari MyAnimeList dan MangaDex.
