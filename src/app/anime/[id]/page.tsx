@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { getAnimeById, getAnimeRecommendations } from "@/lib/jikan";
+import { getAnimeEpisodesFromMalId } from "@/lib/consumet";
 import { AnimeGridSkeleton } from "@/components/anime-card-skeleton";
 import AnimeGrid from "@/components/anime-grid";
 import AdSlot from "@/components/ad-slot";
@@ -113,6 +114,17 @@ async function AnimeInfo({ id }: { id: number }) {
                 )}
               </div>
 
+              {/* Watch button */}
+              <Link
+                href={`/anime/${id}/watch?ep=1`}
+                className="inline-flex items-center gap-2 rounded-xl bg-red-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition-all hover:bg-red-600 hover:shadow-red-500/30 sm:text-base"
+              >
+                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                Tonton Sekarang
+              </Link>
+
               {/* Genres */}
               <div className="flex flex-wrap gap-1.5">
                 {data.genres.map((genre) => (
@@ -187,9 +199,78 @@ async function RecommendationsSection({ id }: { id: number }) {
   );
 }
 
+async function EpisodeListSection({ malId, episodes: totalEpisodes }: { malId: number; episodes: number | null }) {
+  const data = await getAnimeEpisodesFromMalId(malId);
+
+  if (!data?.episodes || data.episodes.length === 0) {
+    // Show fallback message if we know the anime has episodes but streaming API is unavailable
+    if (totalEpisodes && totalEpisodes > 0) {
+      return (
+        <div>
+          <h2 className="mb-4 text-lg font-bold text-white sm:text-xl">Daftar Episode</h2>
+          <div className="rounded-xl bg-white/[0.02] p-6 text-center ring-1 ring-white/5">
+            <svg className="mx-auto h-8 w-8 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="mt-2 text-sm text-zinc-400">Daftar episode sedang tidak tersedia.</p>
+            <p className="mt-1 text-xs text-zinc-600">API streaming sedang tidak dapat diakses. Coba lagi nanti.</p>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  const episodes = data.episodes;
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-lg font-bold text-white sm:text-xl">Daftar Episode</h2>
+        <span className="text-xs text-zinc-500">{data.episodes.length} episode</span>
+      </div>
+      <div className="max-h-[500px] overflow-y-auto rounded-xl bg-white/[0.02] ring-1 ring-white/5 scrollbar-hide">
+        {episodes.map((ep) => (
+          <Link
+            key={ep.id}
+            href={`/anime/${malId}/watch?ep=${ep.number}${ep.title ? `&eptitle=${encodeURIComponent(ep.title)}` : ""}`}
+            className="flex items-center justify-between border-b border-white/[0.03] px-4 py-3 transition-colors last:border-0 hover:bg-white/[0.03]"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-white">
+                  Episode {ep.number}
+                </span>
+                {ep.title && (
+                  <span className="truncate text-xs text-zinc-500">{ep.title}</span>
+                )}
+              </div>
+              {ep.airDate && (
+                <p className="mt-0.5 text-[11px] text-zinc-600">{ep.airDate}</p>
+              )}
+            </div>
+            <svg className="h-4 w-4 shrink-0 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            </svg>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) {
   const { id } = await params;
   const animeId = parseInt(id, 10);
+
+  // Pre-fetch anime data to pass episodes count to EpisodeListSection
+  let totalEpisodes: number | null = null;
+  try {
+    const anime = await getAnimeById(animeId);
+    totalEpisodes = anime.data.episodes;
+  } catch {
+    // ignore
+  }
 
   return (
     <div className="min-h-screen space-y-10 pb-20 md:space-y-12 md:pb-12">
@@ -212,6 +293,17 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
 
       <div className="container mx-auto space-y-10 px-4">
         <AdSlot variant="banner" />
+
+        <Suspense
+          fallback={
+            <div className="space-y-3">
+              <div className="h-6 w-40 animate-pulse rounded bg-zinc-800" />
+              <div className="h-48 animate-pulse rounded-xl bg-zinc-800" />
+            </div>
+          }
+        >
+          <EpisodeListSection malId={animeId} episodes={totalEpisodes} />
+        </Suspense>
 
         <Suspense fallback={<AnimeGridSkeleton count={6} />}>
           <RecommendationsSection id={animeId} />
