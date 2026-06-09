@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { searchAnime, getTopAnime, getSeasonNow, getAnimeByGenre, getUpcomingAnime, GENRE_MAP } from "@/lib/jikan";
 import AnimeGrid from "@/components/anime-grid";
 import { AnimeGridSkeleton } from "@/components/anime-card-skeleton";
+import BrowsePageClient from "@/components/browse-page-client";
 
 interface BrowsePageProps {
   searchParams: Promise<{ q?: string; genre?: string; season?: string; status?: string; page?: string }>;
@@ -89,19 +90,13 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
   return (
     <div className="space-y-6 pb-20 md:pb-12">
-      {/* Hero header */}
-      <section className="relative overflow-hidden border-b border-white/5 bg-gradient-to-b from-blue-500/5 to-transparent">
-        <div className="container mx-auto px-4 py-8 sm:py-10">
-          <h1 className="text-2xl font-black text-white sm:text-3xl md:text-4xl">
-            {pageTitle}
-          </h1>
-          {!resolvedParams.q && (
-            <p className="mt-2 text-sm text-zinc-400">
-              Jelajahi koleksi anime terlengkap
-            </p>
-          )}
-        </div>
-      </section>
+      {/* Client-side header with search */}
+      <BrowsePageClient
+        activeFilter={activeFilter}
+        searchQuery={resolvedParams.q}
+        genre={resolvedParams.genre}
+        orderBy="score"
+      />
 
       <div className="container mx-auto space-y-6 px-4">
         {/* Quick filters */}
@@ -121,7 +116,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           ))}
         </div>
 
-        {/* Genre filters - horizontal scroll on mobile */}
+        {/* Genre filters */}
         <div>
           <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">Genre</p>
           <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4 pb-2">
@@ -140,6 +135,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             ))}
           </div>
         </div>
+
+        {/* Page title */}
+        <h2 className="text-lg font-bold text-white sm:text-xl">{pageTitle}</h2>
 
         <Suspense fallback={<AnimeGridSkeleton count={18} />}>
           <BrowseResults searchParams={resolvedParams} />

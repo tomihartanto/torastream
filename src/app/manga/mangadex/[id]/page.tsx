@@ -1,8 +1,9 @@
 import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { getMangaDexById, getMangaChapters } from "@/lib/mangadex";
+import { getMangaDexById, getAllMangaChapters } from "@/lib/mangadex";
 import { findMangaByTitle, type MangaData } from "@/lib/jikan";
+import ChapterListClient from "@/components/chapter-list-client";
 import type { Metadata } from "next";
 
 interface MangaDexDetailPageProps {
@@ -22,24 +23,12 @@ export async function generateMetadata({
   }
 }
 
-// Group chapters by volume
-function groupByVolume<T extends { volume: string | null }>(chapters: T[]) {
-  const groups: Record<string, T[]> = {};
-  for (const ch of chapters) {
-    const key = ch.volume || "No Volume";
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(ch);
-  }
-  return groups;
-}
-
 async function MangaDexInfo({ id, lang }: { id: string; lang: "id" | "en" | "all" }) {
   let manga, chaptersData, jikanData: MangaData | null = null;
   try {
-    // Always fetch all chapters (id + en), filter client-side
     [manga, chaptersData] = await Promise.all([
       getMangaDexById(id),
-      getMangaChapters(id, 100, 0),
+      getAllMangaChapters(id, undefined, 500),
     ]);
 
     try {
@@ -82,13 +71,6 @@ async function MangaDexInfo({ id, lang }: { id: string; lang: "id" | "en" | "all
       : chaptersData.chapters.filter(
           (ch) => ch.translatedLanguage === lang
         );
-
-  const volumeGroups = groupByVolume(filteredChapters);
-  const sortedVolumes = Object.entries(volumeGroups).sort(([a], [b]) => {
-    if (a === "No Volume") return 1;
-    if (b === "No Volume") return -1;
-    return parseInt(b) - parseInt(a);
-  });
 
   return (
     <div className="container mx-auto px-4 pt-4 pb-8 sm:pt-6">
@@ -137,6 +119,17 @@ async function MangaDexInfo({ id, lang }: { id: string; lang: "id" | "en" | "all
                 Mulai Baca
               </Link>
             )}
+            <a
+              href={`https://mangadex.org/title/${id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-white/5 px-4 py-2.5 text-sm font-medium text-zinc-400 ring-1 ring-white/10 transition-colors hover:bg-white/10 hover:text-zinc-300"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Baca di MangaDex
+            </a>
 
             {/* MAL Info sidebar (desktop only) */}
             {jikanData && (
@@ -311,7 +304,7 @@ async function MangaDexInfo({ id, lang }: { id: string; lang: "id" | "en" | "all
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white sm:text-lg">Daftar Chapter</h2>
               <span className="text-xs text-zinc-500">
-                {filteredChapters.length} chapter
+                {chaptersData.total} chapter
               </span>
             </div>
 
@@ -363,76 +356,13 @@ async function MangaDexInfo({ id, lang }: { id: string; lang: "id" | "en" | "all
               </Link>
             </div>
 
-            {/* Chapter list */}
-            {filteredChapters.length === 0 ? (
-              <div className="rounded-lg bg-white/[0.02] p-8 text-center ring-1 ring-white/5">
-                <svg className="mx-auto h-8 w-8 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-                <p className="mt-2 text-sm text-zinc-500">
-                  {lang === "id"
-                    ? "Belum ada chapter Bahasa Indonesia."
-                    : lang === "en"
-                    ? "Belum ada chapter Bahasa Inggris."
-                    : "Belum ada chapter tersedia."}
-                </p>
-                {lang !== "all" && (
-                  <Link
-                    href={`/manga/mangadex/${id}?lang=all`}
-                    className="mt-2 inline-block text-xs text-red-400 hover:text-red-300"
-                  >
-                    Lihat semua chapter
-                  </Link>
-                )}
-              </div>
-            ) : (
-              <div className="max-h-[500px] overflow-y-auto rounded-lg bg-white/[0.02] ring-1 ring-white/5 scrollbar-hide lg:max-h-[700px]">
-                {sortedVolumes.map(([vol, chapters]) => (
-                  <div key={vol}>
-                    {/* Volume header */}
-                    {vol !== "No Volume" && (
-                      <div className="sticky top-0 z-10 border-b border-white/5 bg-zinc-900/95 px-4 py-2 backdrop-blur-sm">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                          Volume {vol}
-                        </span>
-                      </div>
-                    )}
-                    {chapters.map((ch) => (
-                      <Link
-                        key={ch.id}
-                        href={`/manga/read/${id}/${ch.id}`}
-                        className="flex items-center justify-between border-b border-white/[0.03] px-4 py-2.5 transition-colors last:border-0 hover:bg-white/[0.03]"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-white">
-                              Ch. {ch.chapter || "N/A"}
-                            </span>
-                            {ch.title && (
-                              <span className="truncate text-xs text-zinc-500">- {ch.title}</span>
-                            )}
-                          </div>
-                          {ch.scanlationGroup && (
-                            <p className="mt-0.5 truncate text-[11px] text-zinc-600">
-                              {ch.scanlationGroup}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                            ch.translatedLanguage === "id"
-                              ? "bg-emerald-500/10 text-emerald-400"
-                              : "bg-blue-500/10 text-blue-400"
-                          }`}>
-                            {ch.translatedLanguage === "id" ? "ID" : "EN"}
-                          </span>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            )}
+            <ChapterListClient
+              mangaId={id}
+              initialChapters={filteredChapters}
+              totalCount={chaptersData.total}
+              lang={lang}
+              mangadexUrl={`https://mangadex.org/title/${id}`}
+            />
           </div>
         </div>
       </div>
@@ -446,7 +376,7 @@ export default async function MangaDexDetailPage({
 }: MangaDexDetailPageProps) {
   const { id } = await params;
   const { lang: langParam } = await searchParams;
-  const lang = langParam === "id" ? "id" : langParam === "all" ? "all" : "en";
+  const lang = langParam === "id" ? "id" : langParam === "en" ? "en" : "all";
 
   return (
     <div className="min-h-screen pb-20 md:pb-12">

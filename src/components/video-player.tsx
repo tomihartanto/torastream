@@ -226,7 +226,7 @@ export default function VideoPlayer({
       >
         {/* Bottom controls */}
         <div className="flex items-center gap-3">
-          {/* Play/Pause - use native */}
+          {/* Play/Pause */}
           <button
             onClick={() => {
               const v = videoRef.current;
@@ -238,6 +238,9 @@ export default function VideoPlayer({
             <PlayPauseIcon videoRef={videoRef} />
           </button>
 
+          {/* Volume */}
+          <VolumeControl videoRef={videoRef} />
+
           {/* Progress bar */}
           <div className="flex-1">
             <ProgressBar videoRef={videoRef} />
@@ -245,6 +248,9 @@ export default function VideoPlayer({
 
           {/* Time display */}
           <TimeDisplay videoRef={videoRef} />
+
+          {/* Playback speed */}
+          <PlaybackSpeed videoRef={videoRef} />
 
           {/* Quality selector */}
           {qualities.length > 0 && (
@@ -387,4 +393,90 @@ function TimeDisplay({ videoRef }: { videoRef: React.RefObject<HTMLVideoElement 
   }, [videoRef]);
 
   return <span className="shrink-0 text-xs text-white/70 tabular-nums">{time}</span>;
+}
+
+function VolumeControl({ videoRef }: { videoRef: React.RefObject<HTMLVideoElement | null> }) {
+  const [volume, setVolume] = useState(1);
+  const [muted, setMuted] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.volume = 1;
+    video.muted = false;
+  }, [videoRef]);
+
+  const toggleMute = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !video.muted;
+    setMuted(video.muted);
+  };
+
+  const changeVolume = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const video = videoRef.current;
+    if (!video) return;
+    const vol = parseFloat(e.target.value);
+    video.volume = vol;
+    video.muted = vol === 0;
+    setVolume(vol);
+    setMuted(vol === 0);
+  };
+
+  return (
+    <div className="group/vol flex items-center gap-1.5">
+      <button onClick={toggleMute} className="text-white/90 hover:text-white">
+        {muted || volume === 0 ? (
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+          </svg>
+        ) : volume < 0.5 ? (
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M12 6v12m-3.536-1.464a5 5 0 010-7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+          </svg>
+        ) : (
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+          </svg>
+        )}
+      </button>
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.05}
+        value={muted ? 0 : volume}
+        onChange={changeVolume}
+        className="hidden w-0 group-hover/vol:w-16 group-hover/vol:block transition-all h-1 appearance-none rounded-full bg-white/20 accent-white cursor-pointer
+          [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white
+          [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0"
+      />
+    </div>
+  );
+}
+
+function PlaybackSpeed({ videoRef }: { videoRef: React.RefObject<HTMLVideoElement | null> }) {
+  const [speed, setSpeed] = useState(1);
+  const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
+  const changeSpeed = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    const currentIndex = speeds.indexOf(speed);
+    const nextIndex = (currentIndex + 1) % speeds.length;
+    const newSpeed = speeds[nextIndex];
+    video.playbackRate = newSpeed;
+    setSpeed(newSpeed);
+  };
+
+  return (
+    <button
+      onClick={changeSpeed}
+      className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[11px] text-white/70 hover:text-white transition-colors"
+      title="Kecepatan pemutaran"
+    >
+      {speed}x
+    </button>
+  );
 }

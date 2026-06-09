@@ -3,7 +3,8 @@ import {
   searchMangaDex,
   getRecentManga,
   getPopularManga,
-  getAllManga,
+  getFilteredManga,
+  type MangaFilterParams,
 } from "@/lib/mangadex";
 import { MangaGridSkeleton } from "@/components/manga-card-skeleton";
 import MangaGrid from "@/components/manga-grid";
@@ -11,6 +12,7 @@ import SectionHeader from "@/components/section-header";
 import HorizontalScroll from "@/components/horizontal-scroll";
 import MangaCard from "@/components/manga-card";
 import AdSlot from "@/components/ad-slot";
+import MangaPageClient from "@/components/manga-page-client";
 
 export const dynamic = "force-dynamic";
 
@@ -58,18 +60,36 @@ async function RecentMangaSection() {
   );
 }
 
-async function AllMangaSection({ page }: { page: number }) {
+async function FilteredMangaSection({
+  page,
+  filters,
+}: {
+  page: number;
+  filters: MangaFilterParams;
+}) {
   const limit = 24;
   const offset = (page - 1) * limit;
 
   let result;
   try {
-    result = await getAllManga(limit, offset);
+    result = await getFilteredManga(limit, offset, filters);
   } catch {
     return <ErrorFallback message="Gagal memuat daftar manga. Coba lagi nanti." />;
   }
 
   const totalPages = Math.ceil((result.total || 1) / limit);
+
+  // Build pagination URLs preserving filters
+  const buildPageUrl = (p: number) => {
+    const params = new URLSearchParams();
+    params.set("tab", "all");
+    params.set("page", String(p));
+    if (filters.genre) params.set("genre", filters.genre);
+    if (filters.status) params.set("status", filters.status);
+    if (filters.type) params.set("type", filters.type);
+    if (filters.sort && filters.sort !== "latest") params.set("sort", filters.sort);
+    return `/manga?${params.toString()}`;
+  };
 
   return (
     <>
@@ -80,7 +100,7 @@ async function AllMangaSection({ page }: { page: number }) {
         <div className="mt-8 flex items-center justify-center gap-2 sm:gap-3">
           {page > 1 && (
             <a
-              href={`/manga?tab=all&page=${page - 1}`}
+              href={buildPageUrl(page - 1)}
               className="flex items-center gap-1 rounded-xl bg-white/5 px-3 py-2 text-sm font-medium text-white ring-1 ring-white/10 transition-all hover:bg-white/10 sm:px-4 sm:py-2.5"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,7 +114,7 @@ async function AllMangaSection({ page }: { page: number }) {
           </span>
           {page < totalPages && (
             <a
-              href={`/manga?tab=all&page=${page + 1}`}
+              href={buildPageUrl(page + 1)}
               className="flex items-center gap-1 rounded-xl bg-red-500 px-3 py-2 text-sm font-medium text-white transition-all hover:bg-red-600 sm:px-4 sm:py-2.5"
             >
               <span className="hidden sm:inline">Selanjutnya</span>
@@ -134,69 +154,24 @@ async function MangaSearchResults({ query }: { query: string }) {
   );
 }
 
-const TABS = [
-  { key: "home", label: "Beranda", href: "/manga" },
-  { key: "all", label: "Semua Manga", href: "/manga?tab=all" },
-] as const;
-
 export default async function MangaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; tab?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; tab?: string; page?: string; genre?: string; status?: string; type?: string; sort?: string }>;
 }) {
-  const { q, tab, page: pageParam } = await searchParams;
+  const { q, tab, page: pageParam, genre, status, type, sort } = await searchParams;
   const currentPage = Math.max(1, parseInt(pageParam || "1", 10));
   const activeTab = q ? "search" : tab === "all" ? "all" : "home";
+  const filters: MangaFilterParams = { genre, status, type, sort };
 
   return (
     <div className="space-y-8 pb-20 md:space-y-10 md:pb-12">
-      {/* Hero header */}
-      <section className="relative overflow-hidden border-b border-white/5 bg-gradient-to-b from-red-500/5 to-transparent">
-        <div className="container mx-auto px-4 py-8 sm:py-10">
-          <h1 className="text-2xl font-black text-white sm:text-3xl md:text-4xl">
-            Manga
-          </h1>
-          <p className="mt-2 text-sm text-zinc-400">
-            Baca manga terpopuler dan terbaru langsung di browser. Gratis.
-          </p>
-
-          {/* Search */}
-          <form action="/manga" method="GET" className="mt-5 flex max-w-xl gap-2 sm:mt-6">
-            <input
-              type="text"
-              name="q"
-              defaultValue={q || ""}
-              placeholder="Cari judul manga..."
-              className="h-10 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:h-11"
-            />
-            <button
-              type="submit"
-              className="shrink-0 rounded-xl bg-red-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-red-600 sm:px-6"
-            >
-              Cari
-            </button>
-          </form>
-
-          {/* Tabs */}
-          {!q && (
-            <div className="mt-4 flex gap-2">
-              {TABS.map((t) => (
-                <a
-                  key={t.key}
-                  href={t.href}
-                  className={`rounded-xl px-3 py-1.5 text-sm font-medium transition-all sm:px-4 sm:py-2 ${
-                    activeTab === t.key
-                      ? "bg-red-500 text-white"
-                      : "bg-white/5 text-zinc-400 ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  {t.label}
-                </a>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
+      {/* Client-side header with search, tabs, filters */}
+      <MangaPageClient
+        initialQuery={q}
+        activeTab={activeTab}
+        filters={filters}
+      />
 
       {q ? (
         /* Search results */
@@ -209,11 +184,11 @@ export default async function MangaPage({
           </Suspense>
         </section>
       ) : activeTab === "all" ? (
-        /* All manga with pagination */
+        /* Filtered manga with pagination */
         <section className="container mx-auto px-4">
           <SectionHeader title="Semua Manga" />
           <Suspense fallback={<MangaGridSkeleton count={24} />}>
-            <AllMangaSection page={currentPage} />
+            <FilteredMangaSection page={currentPage} filters={filters} />
           </Suspense>
         </section>
       ) : (

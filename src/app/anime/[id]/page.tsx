@@ -145,6 +145,21 @@ async function AnimeInfo({ id }: { id: number }) {
                   <p className="text-sm leading-relaxed text-zinc-300">{synopsis}</p>
                 </div>
               )}
+
+              {/* Trailer */}
+              {data.trailer?.youtube_id && (
+                <div className="overflow-hidden rounded-xl ring-1 ring-white/10">
+                  <div className="relative aspect-video w-full">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${data.trailer.youtube_id}?autoplay=0&rel=0`}
+                      title="Trailer"
+                      allowFullScreen
+                      className="absolute inset-0 h-full w-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -200,10 +215,14 @@ async function RecommendationsSection({ id }: { id: number }) {
 }
 
 async function EpisodeListSection({ malId, episodes: totalEpisodes }: { malId: number; episodes: number | null }) {
-  const data = await getAnimeEpisodesFromMalId(malId);
+  let data;
+  try {
+    data = await getAnimeEpisodesFromMalId(malId);
+  } catch {
+    data = null;
+  }
 
   if (!data?.episodes || data.episodes.length === 0) {
-    // Show fallback message if we know the anime has episodes but streaming API is unavailable
     if (totalEpisodes && totalEpisodes > 0) {
       return (
         <div>
@@ -213,7 +232,16 @@ async function EpisodeListSection({ malId, episodes: totalEpisodes }: { malId: n
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="mt-2 text-sm text-zinc-400">Daftar episode sedang tidak tersedia.</p>
-            <p className="mt-1 text-xs text-zinc-600">API streaming sedang tidak dapat diakses. Coba lagi nanti.</p>
+            <p className="mt-1 text-xs text-zinc-600">API streaming sedang tidak dapat diakses.</p>
+            <Link
+              href={`/anime/${malId}/watch?ep=1`}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-600"
+            >
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              Tonton Episode 1
+            </Link>
           </div>
         </div>
       );

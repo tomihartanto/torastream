@@ -8,6 +8,8 @@ import type { ConsumetEpisode, ConsumetStreamingData } from "@/lib/consumet";
 
 const VideoPlayer = dynamic(() => import("@/components/video-player"), { ssr: false });
 
+type VideoSource = "consumet" | "embed";
+
 interface WatchClientProps {
   malId: number;
   animeTitle: string;
@@ -15,6 +17,20 @@ interface WatchClientProps {
   totalEpisodes: number | null;
   currentEpisode: number;
   episodeTitle: string | null;
+}
+
+// Embed sources that work with MAL ID + episode number
+function getEmbedUrls(malId: number, episode: number): { name: string; url: string }[] {
+  return [
+    {
+      name: "Gogoanime",
+      url: `https://api.animebrowser.is/streaming/gogoanime?mal_id=${malId}&ep=${episode}`,
+    },
+    {
+      name: "Yugen",
+      url: `https://api.animebrowser.is/streaming/yugen?mal_id=${malId}&ep=${episode}`,
+    },
+  ];
 }
 
 export default function WatchPageClient({
@@ -31,8 +47,10 @@ export default function WatchPageClient({
   const [streamingData, setStreamingData] = useState<ConsumetStreamingData | null>(null);
   const [loadingEpisodes, setLoadingEpisodes] = useState(true);
   const [loadingStream, setLoadingStream] = useState(true);
-  const [errorEpisodes, setErrorEpisodes] = useState<string | null>(null);
   const [errorStream, setErrorStream] = useState<string | null>(null);
+  const [errorEpisodes, setErrorEpisodes] = useState<string | null>(null);
+  const [videoSource, setVideoSource] = useState<VideoSource>("consumet");
+  const [embedUrl, setEmbedUrl] = useState<string | null>(null);
   const [showEpList, setShowEpList] = useState(false);
 
   // Fetch episodes
@@ -54,23 +72,23 @@ export default function WatchPageClient({
       })
       .catch(() => {
         if (cancelled) return;
-        setErrorEpisodes("Gagal memuat daftar episode. API streaming sedang tidak tersedia.");
+        setErrorEpisodes("Gagal memuat daftar episode.");
         setLoadingEpisodes(false);
       });
 
     return () => { cancelled = true; };
   }, [malId]);
 
-  // Fetch streaming data for current episode
+  // Fetch streaming data for current episode (Consumet)
   const fetchStream = useCallback(async () => {
     setLoadingStream(true);
     setErrorStream(null);
     setStreamingData(null);
+    setVideoSource("consumet");
 
-    // Find current episode ID from episodes list
     const ep = episodes.find((e) => e.number === currentEpisode);
     if (!ep?.id) {
-      setErrorStream("Episode tidak ditemukan.");
+      setErrorStream("Episode tidak ditemukan di Consumet. Coba ganti ke sumber Embed.");
       setLoadingStream(false);
       return;
     }
@@ -79,9 +97,10 @@ export default function WatchPageClient({
       const res = await fetch(`/api/consumet/watch/${encodeURIComponent(ep.id)}`);
       if (!res.ok) throw new Error("Failed");
       const data: ConsumetStreamingData = await res.json();
+      if (!data.sources || data.sources.length === 0) throw new Error("No sources");
       setStreamingData(data);
     } catch {
-      setErrorStream("Gagal memuat video. Coba lagi nanti.");
+      setErrorStream("Consumet gagal. Coba ganti ke sumber Embed.");
     } finally {
       setLoadingStream(false);
     }
@@ -92,6 +111,31 @@ export default function WatchPageClient({
       fetchStream();
     }
   }, [episodes, fetchStream]);
+
+  // Switch to embed
+  const switchToEmbed = useCallback((url?: string) => {
+    setLoadingStream(true);
+    setErrorStream(null);
+    setStreamingData(null);
+    setVideoSource("embed");
+
+    if (url) {
+      setEmbedUrl(url);
+      setLoadingStream(false);
+    } else {
+      // Default embed
+      const embeds = getEmbedUrls(malId, currentEpisode);
+      setEmbedUrl(embeds[0].url);
+      setLoadingStream(false);
+    }
+  }, [malId, currentEpisode]);
+
+  // Retry with embed when Consumet fails
+  useEffect(() => {
+    if (errorStream && episodes.length === 0) {
+      switchToEmbed();
+    }
+  }, [errorStream, episodes.length, switchToEmbed]);
 
   const navigateToEpisode = (epNum: number) => {
     const ep = episodes.find((e) => e.number === epNum);
@@ -112,6 +156,7 @@ export default function WatchPageClient({
   const currentEp = episodes.find((e) => e.number === currentEpisode);
   const maxEp = totalEpisodes || episodes.length;
   const hasNextEp = currentEpisode < maxEp;
+  const embedSources = getEmbedUrls(malId, currentEpisode);
 
   return (
     <div className="space-y-4">
@@ -124,6 +169,42 @@ export default function WatchPageClient({
         <span className="truncate text-zinc-300">Episode {currentEpisode}</span>
       </nav>
 
+      {/* Source selector */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-zinc-500">Sumber:</span>
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => {
+              if (episodes.length > 0) {
+                fetchStream();
+              } else {
+                switchToEmbed();
+              }
+            }}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+              videoSource === "consumet"
+                ? "bg-red-500/15 text-red-400 ring-1 ring-red-500/30"
+                : "bg-white/5 text-zinc-400 ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            Consumet
+          </button>
+          {embedSources.map((src) => (
+            <button
+              key={src.name}
+              onClick={() => switchToEmbed(src.url)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                videoSource === "embed" && embedUrl === src.url
+                  ? "bg-red-500/15 text-red-400 ring-1 ring-red-500/30"
+                  : "bg-white/5 text-zinc-400 ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              {src.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Video player */}
       <div className="relative">
         {loadingStream ? (
@@ -133,6 +214,17 @@ export default function WatchPageClient({
               <p className="mt-3 text-sm text-zinc-400">Memuat video...</p>
             </div>
           </div>
+        ) : videoSource === "embed" && embedUrl ? (
+          <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black ring-1 ring-white/10">
+            <iframe
+              src={embedUrl}
+              className="absolute inset-0 h-full w-full"
+              allowFullScreen
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="no-referrer"
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+            />
+          </div>
         ) : errorStream ? (
           <div className="flex aspect-video w-full items-center justify-center rounded-xl bg-zinc-900 ring-1 ring-white/5">
             <div className="text-center px-4">
@@ -140,9 +232,22 @@ export default function WatchPageClient({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="mt-3 text-sm text-zinc-400">{errorStream}</p>
-              <button onClick={fetchStream} className="mt-3 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600">
-                Coba Lagi
-              </button>
+              <div className="mt-4 flex items-center justify-center gap-2">
+                {videoSource === "consumet" && (
+                  <button
+                    onClick={() => switchToEmbed()}
+                    className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"
+                  >
+                    Coba Embed
+                  </button>
+                )}
+                <button
+                  onClick={fetchStream}
+                  className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
+                >
+                  Coba Lagi
+                </button>
+              </div>
             </div>
           </div>
         ) : streamingData && streamingData.sources?.length > 0 ? (
@@ -155,7 +260,15 @@ export default function WatchPageClient({
           />
         ) : (
           <div className="flex aspect-video w-full items-center justify-center rounded-xl bg-zinc-900 ring-1 ring-white/5">
-            <p className="text-sm text-zinc-400">Video tidak tersedia.</p>
+            <div className="text-center px-4">
+              <p className="text-sm text-zinc-400">Video tidak tersedia dari sumber ini.</p>
+              <button
+                onClick={() => switchToEmbed()}
+                className="mt-3 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"
+              >
+                Coba Embed
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -201,7 +314,7 @@ export default function WatchPageClient({
         className="flex w-full items-center justify-between rounded-lg bg-white/[0.03] px-4 py-3 ring-1 ring-white/5 sm:hidden"
       >
         <span className="text-sm font-medium text-white">
-          Daftar Episode ({episodes.length || "?"})
+          Daftar Episode ({episodes.length || totalEpisodes || "?"})
         </span>
         <svg className={`h-4 w-4 text-zinc-400 transition-transform ${showEpList ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -219,6 +332,7 @@ export default function WatchPageClient({
       ) : errorEpisodes ? (
         <div className="rounded-xl bg-white/[0.02] p-6 text-center ring-1 ring-white/5">
           <p className="text-sm text-zinc-400">{errorEpisodes}</p>
+          <p className="mt-1 text-xs text-zinc-600">Gunakan navigasi Sebelumnya/Selanjutnya untuk pindah episode.</p>
         </div>
       ) : episodes.length > 0 ? (
         <div className={`overflow-hidden rounded-xl bg-white/[0.02] ring-1 ring-white/5 ${showEpList ? "block" : "hidden sm:block"}`}>
@@ -253,7 +367,18 @@ export default function WatchPageClient({
             ))}
           </div>
         </div>
-      ) : null}
+      ) : (
+        /* No episode list from Consumet - show manual navigation */
+        <div className="rounded-xl bg-white/[0.02] p-6 text-center ring-1 ring-white/5">
+          <p className="text-sm text-zinc-400">Daftar episode tidak tersedia dari Consumet.</p>
+          <p className="mt-1 text-xs text-zinc-600">Gunakan navigasi Sebelumnya/Selanjutnya untuk pindah episode.</p>
+          {totalEpisodes && (
+            <p className="mt-2 text-xs text-zinc-500">
+              Total {totalEpisodes} episode
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

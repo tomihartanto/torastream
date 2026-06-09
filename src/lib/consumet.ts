@@ -74,8 +74,7 @@ export async function getAnimeEpisodesFromMalId(malId: number) {
     );
 
     return data;
-  } catch (error) {
-    console.error("Consumet: Failed to fetch anime info for MAL ID:", malId, error);
+  } catch {
     return null;
   }
 }
@@ -92,8 +91,7 @@ export async function getEpisodeStreamingLinks(episodeId: string) {
     );
 
     return data;
-  } catch (error) {
-    console.error("Consumet: Failed to fetch streaming links for:", episodeId, error);
+  } catch {
     return null;
   }
 }
@@ -110,8 +108,7 @@ export async function getEpisodeServers(episodeId: string) {
     );
 
     return data;
-  } catch (error) {
-    console.error("Consumet: Failed to fetch servers for:", episodeId, error);
+  } catch {
     return null;
   }
 }

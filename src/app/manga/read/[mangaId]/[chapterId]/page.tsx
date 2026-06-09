@@ -1,6 +1,5 @@
 import { Suspense } from "react";
-import Link from "next/link";
-import { getChapterPages, getMangaDexById, getMangaChapters } from "@/lib/mangadex";
+import { getChapterPages, getMangaDexById, getAllMangaChapters } from "@/lib/mangadex";
 import ChapterReaderClient from "./reader-client";
 import type { Metadata } from "next";
 
@@ -36,7 +35,7 @@ async function ChapterReaderData({
   const [chapterData, manga, chaptersData] = await Promise.all([
     getChapterPages(chapterId),
     getMangaDexById(mangaId),
-    getMangaChapters(mangaId, 100),
+    getAllMangaChapters(mangaId, undefined, 500),
   ]);
 
   const { chapters } = chaptersData;
@@ -66,6 +65,19 @@ async function ChapterReaderData({
     chapterData.chapter ? `Chapter ${chapterData.chapter}` : "Chapter"
   }${chapterData.title ? `: ${chapterData.title}` : ""}`;
 
+  // Build chapter list for dropdown (sorted by chapter number descending)
+  const allChapters = [...sameLangChapters]
+    .sort((a, b) => {
+      const numA = a.chapter ? parseFloat(a.chapter) : 0;
+      const numB = b.chapter ? parseFloat(b.chapter) : 0;
+      return numB - numA;
+    })
+    .map((ch) => ({
+      id: ch.id,
+      chapter: ch.chapter,
+      title: ch.title,
+    }));
+
   return (
     <ChapterReaderClient
       pages={chapterData.pages}
@@ -75,6 +87,8 @@ async function ChapterReaderData({
       chapterLang={currentLang}
       prevChapter={prevChapter}
       nextChapter={nextChapter}
+      allChapters={allChapters}
+      currentChapterId={chapterId}
     />
   );
 }

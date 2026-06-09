@@ -29,6 +29,11 @@ export interface AnimeData {
   type: string | null;
   episodes: number | null;
   status: string | null;
+  trailer?: {
+    youtube_id?: string | null;
+    url?: string | null;
+    embed_url?: string | null;
+  } | null;
   score: number | null;
   scored_by: number | null;
   rank: number | null;

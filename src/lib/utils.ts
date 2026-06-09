@@ -26,7 +26,6 @@ export async function fetchApi<T>(
 
     return res.json();
   } catch (error) {
-    console.error(`Fetch failed: ${url}`, error);
     throw error;
   }
 }
