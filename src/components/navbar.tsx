@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { LogoFull } from "@/components/logo";
 
@@ -46,6 +46,7 @@ export default function Navbar() {
                   <Link
                     key={item.href}
                     href={item.href}
+                    aria-current={active ? "page" : undefined}
                     className={cn(
                       "relative rounded-lg px-3.5 py-2 text-sm font-medium transition-all",
                       active
@@ -77,6 +78,7 @@ function DesktopSearch() {
   const [query, setQuery] = useState("");
   const [type, setType] = useState<"anime" | "manga">("anime");
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -98,7 +100,7 @@ function DesktopSearch() {
     e.preventDefault();
     if (query.trim()) {
       const basePath = type === "anime" ? "/browse" : "/manga";
-      window.location.href = `${basePath}?q=${encodeURIComponent(query.trim())}`;
+      router.push(`${basePath}?q=${encodeURIComponent(query.trim())}`);
     }
   };
 
@@ -116,7 +118,7 @@ function DesktopSearch() {
           </kbd>
         </button>
       ) : (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[20vh]">
+        <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[20vh]" role="dialog" aria-modal="true">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setOpen(false)}
@@ -184,6 +186,7 @@ function MobileSearchOverlay({
 }) {
   const [query, setQuery] = useState("");
   const [type, setType] = useState<"anime" | "manga">("anime");
+  const router = useRouter();
 
   if (!open) return null;
 
@@ -191,7 +194,7 @@ function MobileSearchOverlay({
     e.preventDefault();
     if (query.trim()) {
       const basePath = type === "anime" ? "/browse" : "/manga";
-      window.location.href = `${basePath}?q=${encodeURIComponent(query.trim())}`;
+      router.push(`${basePath}?q=${encodeURIComponent(query.trim())}`);
     }
   };
 
@@ -268,6 +271,7 @@ function BottomNav({ pathname }: { pathname: string }) {
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "relative flex flex-1 flex-col items-center gap-0.5 rounded-lg py-2 transition-all",
                   active ? "text-red-500" : "text-zinc-500"
@@ -322,7 +326,7 @@ function CloseIcon() {
 
 function HomeIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l9-9 9 9M5 10v10h14V10" />
     </svg>
   );
@@ -330,7 +334,7 @@ function HomeIcon({ className }: { className?: string }) {
 
 function PlayIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
       <circle cx="12" cy="12" r="9" strokeWidth={2} />
     </svg>
@@ -339,7 +343,7 @@ function PlayIcon({ className }: { className?: string }) {
 
 function BookIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
     </svg>
   );
@@ -347,7 +351,7 @@ function BookIcon({ className }: { className?: string }) {
 
 function GridIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V2zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
     </svg>
   );

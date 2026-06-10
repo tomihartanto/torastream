@@ -70,16 +70,12 @@ export async function GET(
       },
     });
   } catch {
-    // Return placeholder instead of 500 error
-    return new NextResponse(
-      Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64"),
-      {
-        status: 200,
-        headers: {
-          "Content-Type": "image/gif",
-          "Cache-Control": "public, max-age=300",
-        },
-      }
-    );
+    return new NextResponse("Bad Gateway: upstream request failed", {
+      status: 502,
+      headers: {
+        "Content-Type": "text/plain",
+        "Cache-Control": "no-store",
+      },
+    });
   }
 }

@@ -3,25 +3,12 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-const SORT_OPTIONS = [
-  { value: "score", label: "Skor Tertinggi" },
-  { value: "popularity", label: "Terpopuler" },
-  { value: "title", label: "Judul A-Z" },
-  { value: "newest", label: "Terbaru" },
-];
-
 interface BrowsePageClientProps {
-  activeFilter: string;
   searchQuery?: string;
-  genre?: string;
-  orderBy: string;
 }
 
 export default function BrowsePageClient({
-  activeFilter,
   searchQuery,
-  genre,
-  orderBy,
 }: BrowsePageClientProps) {
   const router = useRouter();
   const [search, setSearch] = useState(searchQuery || "");

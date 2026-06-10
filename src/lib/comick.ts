@@ -78,18 +78,31 @@ export interface ComickChapterPages {
 }
 
 async function fetchComick<T>(endpoint: string): Promise<T> {
-  const res = await fetch(`${COMICK_BASE_URL}${endpoint}`, {
-    next: { revalidate: 3600 },
-    headers: {
-      "User-Agent": "ToraStream/1.0",
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-  if (!res.ok) {
-    throw new Error(`Comick API error: ${res.status}`);
+  try {
+    const res = await fetch(`${COMICK_BASE_URL}${endpoint}`, {
+      next: { revalidate: 3600 },
+      headers: {
+        "User-Agent": "ToraStream/1.0",
+      },
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Comick API error: ${res.status}`);
+    }
+
+    return res.json();
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(`Comick API request timed out after 15 seconds: ${endpoint}`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return res.json();
 }
 
 export async function searchComick(

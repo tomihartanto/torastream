@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getMangaDexById, getAllMangaChapters } from "@/lib/mangadex";
 import { findMangaByTitle, type MangaData } from "@/lib/jikan";
+import { findComickByMangaDexId } from "@/lib/comick";
 import ChapterListClient from "@/components/chapter-list-client";
 import type { Metadata } from "next";
 
@@ -25,6 +26,7 @@ export async function generateMetadata({
 
 async function MangaDexInfo({ id, lang }: { id: string; lang: "id" | "en" | "all" }) {
   let manga, chaptersData, jikanData: MangaData | null = null;
+  let comickData: Awaited<ReturnType<typeof findComickByMangaDexId>> = null;
   try {
     [manga, chaptersData] = await Promise.all([
       getMangaDexById(id),
@@ -35,6 +37,12 @@ async function MangaDexInfo({ id, lang }: { id: string; lang: "id" | "en" | "all
       jikanData = await findMangaByTitle(manga.title);
     } catch {
       // Jikan lookup failed
+    }
+
+    try {
+      comickData = await findComickByMangaDexId(id);
+    } catch {
+      // Comick lookup failed
     }
   } catch {
     return (
@@ -95,6 +103,7 @@ async function MangaDexInfo({ id, lang }: { id: string; lang: "id" | "en" | "all
                   src={manga.coverUrl!}
                   alt={manga.title}
                   fill
+                  sizes="(max-width: 640px) 180px, (max-width: 1024px) 220px, 280px"
                   priority
                   className="object-cover"
                   unoptimized
@@ -362,6 +371,8 @@ async function MangaDexInfo({ id, lang }: { id: string; lang: "id" | "en" | "all
               totalCount={chaptersData.total}
               lang={lang}
               mangadexUrl={`https://mangadex.org/title/${id}`}
+              comickHid={comickData?.hid ?? null}
+              comickTotal={comickData?.totalChapters}
             />
           </div>
         </div>

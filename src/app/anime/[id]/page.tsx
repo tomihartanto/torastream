@@ -26,9 +26,7 @@ export async function generateMetadata({ params }: AnimeDetailPageProps): Promis
   }
 }
 
-async function AnimeInfo({ id }: { id: number }) {
-  const anime = await getAnimeById(id);
-  const data = anime.data;
+async function AnimeInfo({ data }: { data: NonNullable<Awaited<ReturnType<typeof getAnimeById>>["data"]> }) {
   const synopsis = data.synopsis ? await translateToId(data.synopsis) : null;
 
   return (
@@ -55,6 +53,7 @@ async function AnimeInfo({ id }: { id: number }) {
                 src={data.images.webp.large_image_url}
                 alt={data.title}
                 fill
+                sizes="(max-width: 640px) 160px, (max-width: 768px) 200px, 280px"
                 priority
                 className="object-cover"
               />
@@ -116,7 +115,7 @@ async function AnimeInfo({ id }: { id: number }) {
 
               {/* Watch button */}
               <Link
-                href={`/anime/${id}/watch?ep=1`}
+                href={`/anime/${data.mal_id}/watch?ep=1`}
                 className="inline-flex items-center gap-2 rounded-xl bg-red-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition-all hover:bg-red-600 hover:shadow-red-500/30 sm:text-base"
               >
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
@@ -291,11 +290,11 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
   const { id } = await params;
   const animeId = parseInt(id, 10);
 
-  // Pre-fetch anime data to pass episodes count to EpisodeListSection
-  let totalEpisodes: number | null = null;
+  // Fetch anime data once, pass to both AnimeInfo and EpisodeListSection
+  let animeData: NonNullable<Awaited<ReturnType<typeof getAnimeById>>["data"]> | null = null;
   try {
     const anime = await getAnimeById(animeId);
-    totalEpisodes = anime.data.episodes;
+    animeData = anime.data;
   } catch {
     // ignore
   }
@@ -316,7 +315,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
           </div>
         }
       >
-        <AnimeInfo id={animeId} />
+        {animeData && <AnimeInfo data={animeData} />}
       </Suspense>
 
       <div className="container mx-auto space-y-10 px-4">
@@ -330,7 +329,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
             </div>
           }
         >
-          <EpisodeListSection malId={animeId} episodes={totalEpisodes} />
+          <EpisodeListSection malId={animeId} episodes={animeData?.episodes ?? null} />
         </Suspense>
 
         <Suspense fallback={<AnimeGridSkeleton count={6} />}>

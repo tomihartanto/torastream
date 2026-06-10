@@ -166,6 +166,59 @@ export default function VideoPlayer({
     }
   };
 
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const video = videoRef.current;
+      if (!video) return;
+      // Ignore if user is typing in an input/select/textarea
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+
+      switch (e.key) {
+        case " ":
+        case "k":
+          e.preventDefault();
+          video.paused ? video.play() : video.pause();
+          showControlsTemporarily();
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          video.currentTime = Math.max(0, video.currentTime - 10);
+          showControlsTemporarily();
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
+          showControlsTemporarily();
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          video.volume = Math.min(1, video.volume + 0.1);
+          video.muted = false;
+          showControlsTemporarily();
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          video.volume = Math.max(0, video.volume - 0.1);
+          showControlsTemporarily();
+          break;
+        case "f":
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+        case "m":
+          e.preventDefault();
+          video.muted = !video.muted;
+          showControlsTemporarily();
+          break;
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [showControlsTemporarily, toggleFullscreen]);
+
   const changeQuality = (level: number) => {
     if (!hlsRef.current) return;
     hlsRef.current.currentLevel = level;
@@ -234,6 +287,7 @@ export default function VideoPlayer({
               v.paused ? v.play() : v.pause();
             }}
             className="shrink-0 text-white/90 hover:text-white"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              aria-label="Putar / Jeda"
           >
             <PlayPauseIcon videoRef={videoRef} />
           </button>
@@ -242,7 +296,7 @@ export default function VideoPlayer({
           <VolumeControl videoRef={videoRef} />
 
           {/* Progress bar */}
-          <div className="flex-1">
+          <div className="flex-1" aria-label="Bilah progres video">
             <ProgressBar videoRef={videoRef} />
           </div>
 
@@ -258,6 +312,7 @@ export default function VideoPlayer({
               value={currentQuality}
               onChange={(e) => changeQuality(parseInt(e.target.value))}
               className="rounded bg-white/10 px-1.5 py-0.5 text-[11px] text-white outline-none"
+              aria-label="Kualitas video"
             >
               <option value={-1}>Auto</option>
               {qualities.map((q, i) => (
@@ -267,7 +322,7 @@ export default function VideoPlayer({
           )}
 
           {/* Fullscreen */}
-          <button onClick={toggleFullscreen} className="shrink-0 text-white/90 hover:text-white">
+          <button onClick={toggleFullscreen} className="shrink-0 text-white/90 hover:text-white" aria-label="Layar penuh">
             {isFullscreen ? (
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9L4 4m0 0h5M4 4v5m11-1L20 4m0 0v5m0-5h-5m-1 11l-5 5m0 0h5m-5 0v-5m11 1l5 5m0 0v-5m0 5h-5" />
@@ -379,8 +434,13 @@ function TimeDisplay({ videoRef }: { videoRef: React.RefObject<HTMLVideoElement 
     if (!video) return;
 
     const fmt = (s: number) => {
-      const m = Math.floor(s / 60);
-      const sec = Math.floor(s % 60);
+      const totalSec = Math.floor(s);
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const sec = totalSec % 60;
+      if (h > 0) {
+        return `${h}:${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+      }
       return `${m}:${sec.toString().padStart(2, "0")}`;
     };
 
@@ -398,6 +458,7 @@ function TimeDisplay({ videoRef }: { videoRef: React.RefObject<HTMLVideoElement 
 function VolumeControl({ videoRef }: { videoRef: React.RefObject<HTMLVideoElement | null> }) {
   const [volume, setVolume] = useState(1);
   const [muted, setMuted] = useState(false);
+  const [showSlider, setShowSlider] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -425,7 +486,7 @@ function VolumeControl({ videoRef }: { videoRef: React.RefObject<HTMLVideoElemen
 
   return (
     <div className="group/vol flex items-center gap-1.5">
-      <button onClick={toggleMute} className="text-white/90 hover:text-white">
+      <button onClick={() => { toggleMute(); setShowSlider((s) => !s); }} className="text-white/90 hover:text-white" aria-label="Volume">
         {muted || volume === 0 ? (
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
@@ -448,9 +509,10 @@ function VolumeControl({ videoRef }: { videoRef: React.RefObject<HTMLVideoElemen
         step={0.05}
         value={muted ? 0 : volume}
         onChange={changeVolume}
-        className="hidden w-0 group-hover/vol:w-16 group-hover/vol:block transition-all h-1 appearance-none rounded-full bg-white/20 accent-white cursor-pointer
+        className={`h-1 appearance-none rounded-full bg-white/20 accent-white cursor-pointer transition-all
           [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white
-          [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0"
+          [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0
+          ${showSlider ? "w-16" : "hidden w-0"} group-hover/vol:!flex group-hover/vol:!w-16`}
       />
     </div>
   );
@@ -475,6 +537,7 @@ function PlaybackSpeed({ videoRef }: { videoRef: React.RefObject<HTMLVideoElemen
       onClick={changeSpeed}
       className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[11px] text-white/70 hover:text-white transition-colors"
       title="Kecepatan pemutaran"
+      aria-label="Kecepatan pemutaran"
     >
       {speed}x
     </button>

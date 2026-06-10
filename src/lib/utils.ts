@@ -15,19 +15,15 @@ export async function fetchApi<T>(
 ): Promise<T> {
   const { revalidate = 3600 } = options;
 
-  try {
-    const res = await fetch(url, {
-      next: { revalidate },
-    });
+  const res = await fetch(url, {
+    next: { revalidate },
+  });
 
-    if (!res.ok) {
-      throw new Error(`API error: ${res.status}`);
-    }
-
-    return res.json();
-  } catch (error) {
-    throw error;
+  if (!res.ok) {
+    throw new Error(`API error: ${res.status}`);
   }
+
+  return res.json();
 }
 
 export async function fetchWithRetry<T>(
@@ -117,6 +113,7 @@ export function cleanMangaDescription(text: string | null): string | null {
   return cleaned;
 }
 
+const MAX_TRANSLATE_CACHE_SIZE = 100;
 const translateCache = new Map<string, string>();
 
 export async function translateToId(text: string): Promise<string> {
@@ -129,10 +126,23 @@ export async function translateToId(text: string): Promise<string> {
   try {
     const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0, 500))}&langpair=en|id`;
     const res = await fetch(url, { next: { revalidate: 86400 } });
+
+    if (!res.ok) {
+      return text;
+    }
+
     const data = await res.json();
 
     if (data.responseStatus === 200 && data.responseData?.translatedText) {
       const translated = data.responseData.translatedText;
+
+      if (translateCache.size >= MAX_TRANSLATE_CACHE_SIZE) {
+        const oldestKey = translateCache.keys().next().value;
+        if (oldestKey !== undefined) {
+          translateCache.delete(oldestKey);
+        }
+      }
+
       translateCache.set(cacheKey, translated);
       return translated;
     }

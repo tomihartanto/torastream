@@ -25,9 +25,19 @@ async function FeaturedBannerSection() {
   try {
     topAnime = await getTopAnime(1, 1);
   } catch {
-    return null;
+    return (
+      <div className="flex items-center justify-center h-[320px] sm:h-[400px] md:h-[500px] rounded-xl bg-zinc-900">
+        <p className="text-sm text-zinc-500">Tidak dapat memuat konten unggulan</p>
+      </div>
+    );
   }
-  if (!topAnime.data?.[0]) return null;
+  if (!topAnime.data?.[0]) {
+    return (
+      <div className="flex items-center justify-center h-[320px] sm:h-[400px] md:h-[500px] rounded-xl bg-zinc-900">
+        <p className="text-sm text-zinc-500">Tidak dapat memuat konten unggulan</p>
+      </div>
+    );
+  }
   return <FeaturedBanner anime={topAnime.data[0]} />;
 }
 

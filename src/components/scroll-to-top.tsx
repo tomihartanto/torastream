@@ -19,7 +19,7 @@ export default function ScrollToTop() {
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       className={cn(
         "fixed bottom-[6.5rem] right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-zinc-800/90 text-zinc-300 shadow-lg ring-1 ring-white/10 backdrop-blur-md transition-all hover:bg-zinc-700 hover:text-white md:bottom-6 md:bg-red-500 md:ring-0 md:text-white md:hover:bg-red-600",
-        visible ? "opacity-100" : "opacity-0"
+        "opacity-100"
       )}
       aria-label="Kembali ke atas"
     >

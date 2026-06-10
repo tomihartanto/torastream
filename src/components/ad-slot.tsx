@@ -36,7 +36,7 @@ export default function AdSlot({
     const container = containerRef.current;
 
     const optionsScript = document.createElement("script");
-    optionsScript.innerHTML = `
+    optionsScript.textContent = `
       atOptions = {
         'key' : '${key}',
         'format' : 'iframe',
