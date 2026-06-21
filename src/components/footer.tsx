@@ -73,21 +73,41 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Info */}
+          {/* Legal */}
           <div>
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-              Info
+              Legal
             </h3>
-            <p className="text-sm leading-relaxed text-zinc-600">
-              ToraStream tidak menyimpan file apa pun di server kami.
-              Semua konten merupakan hak cipta pemiliknya masing-masing.
-            </p>
+            <ul className="space-y-2.5">
+              <li>
+                <Link href="/privacy" className="text-sm text-zinc-500 transition-colors hover:text-white">
+                  Kebijakan Privasi
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="text-sm text-zinc-500 transition-colors hover:text-white">
+                  Syarat &amp; Ketentuan
+                </Link>
+              </li>
+              <li>
+                <Link href="/cookies" className="text-sm text-zinc-500 transition-colors hover:text-white">
+                  Kebijakan Cookie
+                </Link>
+              </li>
+              <li>
+                <Link href="/dmca" className="text-sm text-zinc-500 transition-colors hover:text-white">
+                  DMCA / Takedown
+                </Link>
+              </li>
+            </ul>
           </div>
         </div>
 
         <div className="mt-8 border-t border-white/5 pt-6 text-center">
-          <p className="text-xs text-zinc-600">
+          <p className="text-xs leading-relaxed text-zinc-600">
             &copy; {new Date().getFullYear()} ToraStream. Dibuat dengan Next.js.
+            ToraStream tidak menyimpan file apa pun di server kami.
+            Semua konten merupakan hak cipta pemiliknya masing-masing.
           </p>
         </div>
       </div>

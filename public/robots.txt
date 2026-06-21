@@ -1,0 +1,12 @@
+# Block scraping of API and internal routes
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /*?url=
+
+# Sitemap (update dengan domain Anda setelah deploy)
+# Sitemap: https://your-domain.com/sitemap.xml
+
+# Crawl-delay untuk mengurangi beban server
+Crawl-delay: 1

@@ -5,6 +5,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import ScrollToTop from "@/components/scroll-to-top";
 import AdsterraScripts from "@/components/adsterra-scripts";
+import CookieConsent from "@/components/cookie-consent";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,6 +39,7 @@ export default function RootLayout({
         <main className="flex-1 pt-16 pb-16 md:pb-0">{children}</main>
         <Footer />
         <ScrollToTop />
+        <CookieConsent />
         <AdsterraScripts />
       </body>
     </html>
