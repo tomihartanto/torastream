@@ -7,9 +7,10 @@ export async function GET(
 ) {
   const { id } = await params;
   const searchParams = request.nextUrl.searchParams;
-  const offset = parseInt(searchParams.get("offset") || "0", 10);
-  const limit = parseInt(searchParams.get("limit") || "100", 10);
-  const lang = searchParams.get("lang") as "id" | "en" | null;
+  const offset = Math.max(0, parseInt(searchParams.get("offset") || "0", 10) || 0);
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "100", 10) || 100));
+  const rawLang = searchParams.get("lang");
+  const lang = rawLang === "id" || rawLang === "en" ? rawLang : null;
 
   try {
     const data = await getMangaChapters(id, limit, offset, lang ?? undefined);

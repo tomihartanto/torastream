@@ -30,6 +30,8 @@ interface ChapterReaderClientProps {
   nextChapter: ChapterInfo | null;
   allChapters: ChapterListItem[];
   currentChapterId: string;
+  readHrefPrefix?: string;
+  backHref?: string;
 }
 
 const MODE_ICONS: Record<ReadingMode, string> = {
@@ -58,6 +60,8 @@ export default function ChapterReaderClient({
   nextChapter,
   allChapters,
   currentChapterId,
+  readHrefPrefix = "/manga/read",
+  backHref,
 }: ChapterReaderClientProps) {
   const [readingMode, setReadingMode] = useState<ReadingMode>("scroll");
   const [readingDirection, setReadingDirection] = useState<ReadingDirection>("ltr");
@@ -99,7 +103,7 @@ export default function ChapterReaderClient({
     } else {
       setCurrentPage((p) => (p < totalPages - 1 ? p + 1 : p));
     }
-  }, [currentPage, totalPages, readingMode]);
+  }, [totalPages, readingMode]);
 
   const goPrev = useCallback(() => {
     if (readingMode === "doublePage") {
@@ -107,7 +111,7 @@ export default function ChapterReaderClient({
     } else {
       setCurrentPage((p) => (p > 0 ? p - 1 : p));
     }
-  }, [currentPage, readingMode]);
+  }, [readingMode]);
 
   // Direction-aware navigation
   const goForward = useCallback(() => {
@@ -141,19 +145,31 @@ export default function ChapterReaderClient({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [goForward, goBackward, readingMode]);
 
-  // Reset on chapter change
-  useEffect(() => {
+  // Reset on chapter change (React 19: adjust state during render)
+  const [prevPages, setPrevPages] = useState(pages);
+  if (prevPages !== pages) {
+    setPrevPages(pages);
     setCurrentPage(0);
     setZoom(1);
     setProgress(0);
     setLoadedImages(new Set());
+  }
+
+  useEffect(() => {
     window.scrollTo(0, 0);
   }, [pages]);
 
-  // Scroll progress tracking
+  // Derived progress for non-scroll modes (computed during render, not in effect)
+  const displayProgress =
+    readingMode === "scroll" || readingMode === "webtoon"
+      ? progress
+      : totalPages > 0
+        ? ((currentPage + 1) / totalPages) * 100
+        : 0;
+
+  // Scroll progress tracking (only for scroll/webtoon modes)
   useEffect(() => {
     if (readingMode !== "scroll" && readingMode !== "webtoon") {
-      setProgress(totalPages > 0 ? ((currentPage + 1) / totalPages) * 100 : 0);
       return;
     }
     const handleScroll = () => {
@@ -163,7 +179,7 @@ export default function ChapterReaderClient({
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [readingMode, currentPage, totalPages]);
+  }, [readingMode]);
 
   // Preload adjacent pages
   useEffect(() => {
@@ -268,7 +284,7 @@ export default function ChapterReaderClient({
       <div className="fixed top-0 left-0 right-0 z-[60] h-0.5 bg-white/5">
         <div
           className="h-full bg-red-500 transition-all duration-150"
-          style={{ width: `${progress}%` }}
+          style={{ width: `${displayProgress}%` }}
         />
       </div>
 
@@ -283,7 +299,7 @@ export default function ChapterReaderClient({
         <div className="flex items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="flex items-center gap-3 min-w-0">
             <Link
-              href={`/manga/mangadex/${mangaId}`}
+              href={backHref ?? `/manga/mangadex/${mangaId}`}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -400,7 +416,7 @@ export default function ChapterReaderClient({
                     allChapters.map((ch) => (
                       <Link
                         key={ch.id}
-                        href={`/manga/read/${mangaId}/${ch.id}`}
+                        href={`${readHrefPrefix}/${mangaId}/${ch.id}`}
                         onClick={() => setShowChapterDropdown(false)}
                         className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors ${
                           ch.id === currentChapterId
@@ -434,7 +450,7 @@ export default function ChapterReaderClient({
 
             {prevChapter && (
               <Link
-                href={`/manga/read/${mangaId}/${prevChapter.id}`}
+                href={`${readHrefPrefix}/${mangaId}/${prevChapter.id}`}
                 className="rounded-lg bg-white/5 px-2 py-1.5 text-xs font-medium text-zinc-300 transition-all hover:bg-white/10 hover:text-white"
               >
                 Prev
@@ -442,7 +458,7 @@ export default function ChapterReaderClient({
             )}
             {nextChapter && (
               <Link
-                href={`/manga/read/${mangaId}/${nextChapter.id}`}
+                href={`${readHrefPrefix}/${mangaId}/${nextChapter.id}`}
                 className="rounded-lg bg-red-500 px-2 py-1.5 text-xs font-medium text-white transition-all hover:bg-red-600"
               >
                 Next
@@ -475,6 +491,7 @@ export default function ChapterReaderClient({
                   loading={i < 3 ? "eager" : "lazy"}
                   draggable={false}
                   onLoad={() => handleImageLoad(i)}
+                  onError={() => handleImageLoad(i)}
                   style={{
                     opacity: loadedImages.has(i) ? 1 : 0.3,
                     transition: "opacity 0.3s",
@@ -605,7 +622,7 @@ export default function ChapterReaderClient({
           <div className="flex items-center justify-center gap-3">
             {prevChapter ? (
               <Link
-                href={`/manga/read/${mangaId}/${prevChapter.id}`}
+                href={`${readHrefPrefix}/${mangaId}/${prevChapter.id}`}
                 className="flex items-center gap-1.5 rounded-xl bg-white/5 px-4 py-2.5 text-sm font-medium text-white ring-1 ring-white/10 transition-all hover:bg-white/10"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -621,7 +638,7 @@ export default function ChapterReaderClient({
             )}
             {nextChapter ? (
               <Link
-                href={`/manga/read/${mangaId}/${nextChapter.id}`}
+                href={`${readHrefPrefix}/${mangaId}/${nextChapter.id}`}
                 className="flex items-center gap-1.5 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-red-600"
               >
                 <span className="hidden sm:inline">Chapter Selanjutnya</span>

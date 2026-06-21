@@ -10,7 +10,10 @@ import { MangaGridSkeleton } from "@/components/manga-card-skeleton";
 import HorizontalScroll from "@/components/horizontal-scroll";
 import AdSlot from "@/components/ad-slot";
 
-export const dynamic = "force-dynamic";
+// Revalidate the entire home route every 5 minutes.
+// Individual API responses are cached longer (1h) so this only controls how
+// often the rendered HTML is refreshed.
+export const revalidate = 300;
 
 function ErrorFallback({ message = "Gagal memuat data. Coba lagi nanti." }: { message?: string }) {
   return (

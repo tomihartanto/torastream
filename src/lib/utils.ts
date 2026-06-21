@@ -17,6 +17,7 @@ export async function fetchApi<T>(
 
   const res = await fetch(url, {
     next: { revalidate },
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!res.ok) {
@@ -35,8 +36,11 @@ export async function fetchWithRetry<T>(
     try {
       return await fetchApi<T>(url, options);
     } catch (error) {
+      // Don't retry on client errors (4xx) - they won't succeed on retry
+      if (error instanceof Error && error.message.match(/API error: 4\d{2}/)) {
+        throw error;
+      }
       if (i === retries) throw error;
-      // Exponential backoff: 1s, 2s, 4s...
       const delay = Math.pow(2, i) * 1000;
       await new Promise((r) => setTimeout(r, delay));
     }
@@ -113,42 +117,91 @@ export function cleanMangaDescription(text: string | null): string | null {
   return cleaned;
 }
 
-const MAX_TRANSLATE_CACHE_SIZE = 100;
-const translateCache = new Map<string, string>();
+const MAX_TRANSLATE_INPUT_CHARS = 1500;
+const TRANSLATE_CACHE_TTL = 7 * 24 * 3600; // 7 days
 
 export async function translateToId(text: string): Promise<string> {
   if (!text) return text;
 
-  const cacheKey = text.slice(0, 200);
-  const cached = translateCache.get(cacheKey);
+  // Trim to a sane length so we don't blow past model context
+  const source = text.slice(0, MAX_TRANSLATE_INPUT_CHARS);
+
+  // Lazy import to avoid loading redis when translate is unused
+  const { cacheGet, cacheSet } = await import("./redis");
+  const cacheKey = `translate:en-id:${hashKey(source)}`;
+  const cached = await cacheGet<string>(cacheKey);
   if (cached) return cached;
 
-  try {
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0, 500))}&langpair=en|id`;
-    const res = await fetch(url, { next: { revalidate: 86400 } });
+  const apiKey = process.env.AI_API_KEY;
+  const apiUrl = process.env.AI_API_URL;
+  const model = process.env.AI_MODEL || "glm-4.6";
 
-    if (!res.ok) {
-      return text;
-    }
-
-    const data = await res.json();
-
-    if (data.responseStatus === 200 && data.responseData?.translatedText) {
-      const translated = data.responseData.translatedText;
-
-      if (translateCache.size >= MAX_TRANSLATE_CACHE_SIZE) {
-        const oldestKey = translateCache.keys().next().value;
-        if (oldestKey !== undefined) {
-          translateCache.delete(oldestKey);
-        }
-      }
-
-      translateCache.set(cacheKey, translated);
-      return translated;
-    }
-  } catch {
-    // fallback ke teks asli
+  if (!apiKey || !apiUrl) {
+    return source;
   }
 
-  return text;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    const res = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Anda penerjemah sinopsis manga/anime dari bahasa Inggris ke bahasa Indonesia yang mengalir dan natural. " +
+              "Pertahankan nama diri, istilah, dan nuansa asli. " +
+              "Keluaran HANYA teks terjemahan, tanpa penjelasan, tanpa tanda kutip, tanpa prefiks.",
+          },
+          {
+            role: "user",
+            content: `Terjemahkan ke bahasa Indonesia:\n\n${source}`,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: Math.min(1200, Math.ceil(source.length * 1.5)),
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      console.warn(`[translate] GLM API ${res.status}, using original`);
+      return source;
+    }
+
+    const data = (await res.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const translated = data.choices?.[0]?.message?.content?.trim();
+
+    if (!translated) return source;
+
+    await cacheSet(cacheKey, translated, TRANSLATE_CACHE_TTL);
+    return translated;
+  } catch (err) {
+    console.warn("[translate] failed, returning original:", err);
+    return source;
+  }
+}
+
+function hashKey(s: string): string {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+  h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+  h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return `${(4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36)}`;
 }

@@ -11,7 +11,7 @@ export default function HeroCarousel({ animes }: HeroCarouselProps) {
 
   return (
     <div className="scrollbar-hide flex gap-3 overflow-x-auto px-4 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 lg:grid-cols-5">
-      {animes.slice(0, 5).map((anime) => (
+      {animes.slice(0, 5).map((anime, index) => (
         <Link
           key={anime.mal_id}
           href={`/anime/${anime.mal_id}`}
@@ -22,7 +22,7 @@ export default function HeroCarousel({ animes }: HeroCarouselProps) {
             alt={anime.title}
             fill
             sizes="(max-width: 768px) 85vw, 20vw"
-            priority
+            priority={index === 0}
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />

@@ -197,6 +197,8 @@ export default function MangaPageClient({
             {isAllTab && (
               <button
                 onClick={() => setShowFilters((s) => !s)}
+                aria-label="Filter manga"
+                aria-expanded={showFilters}
                 className={`ml-auto flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium transition-all sm:px-4 sm:py-2 ${
                   showFilters || hasActiveFilter
                     ? "bg-red-500/15 text-red-400 ring-1 ring-red-500/30"

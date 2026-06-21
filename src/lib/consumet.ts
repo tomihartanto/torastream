@@ -74,7 +74,8 @@ export async function getAnimeEpisodesFromMalId(malId: number) {
     );
 
     return data;
-  } catch {
+  } catch (err) {
+    console.warn(`[consumet] getAnimeEpisodesFromMalId(${malId}) failed:`, err);
     return null;
   }
 }
@@ -91,7 +92,8 @@ export async function getEpisodeStreamingLinks(episodeId: string) {
     );
 
     return data;
-  } catch {
+  } catch (err) {
+    console.warn(`[consumet] getEpisodeStreamingLinks(${episodeId}) failed:`, err);
     return null;
   }
 }
@@ -108,7 +110,8 @@ export async function getEpisodeServers(episodeId: string) {
     );
 
     return data;
-  } catch {
+  } catch (err) {
+    console.warn(`[consumet] getEpisodeServers(${episodeId}) failed:`, err);
     return null;
   }
 }

@@ -41,6 +41,11 @@ export default {
 
     // Route: /covers/* -> proxy cover images
     if (path.startsWith("/covers/")) {
+      // Validate cover path format
+      const coverPath = path.replace("/covers/", "");
+      if (!/^[a-f0-9\-]+\/[a-f0-9\-]+\.\w+$/.test(coverPath)) {
+        return new Response("Invalid cover path", { status: 400 });
+      }
       const coverUrl = `${MANGADEX_COVERS}${path}${url.search}`;
       try {
         const res = await fetch(coverUrl, {
@@ -56,7 +61,7 @@ export default {
           headers: {
             "Content-Type": contentType,
             "Cache-Control": "public, max-age=86400, immutable",
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": request.headers.get("Origin") || "*",
           },
         });
       } catch {
@@ -87,7 +92,7 @@ export default {
         headers: {
           "Content-Type": res.headers.get("Content-Type") || "application/json",
           "Cache-Control": "public, max-age=60",
-          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Origin": request.headers.get("Origin") || "*",
         },
       });
     } catch {

@@ -36,15 +36,14 @@ export default function AdSlot({
     const container = containerRef.current;
 
     const optionsScript = document.createElement("script");
-    optionsScript.textContent = `
-      atOptions = {
-        'key' : '${key}',
-        'format' : 'iframe',
-        'height' : ${size.height},
-        'width' : ${size.width},
-        'params' : {}
-      };
-    `;
+    const config = {
+      key,
+      format: "iframe",
+      height: size.height,
+      width: size.width,
+      params: {},
+    };
+    optionsScript.textContent = `atOptions = ${JSON.stringify(config)};`;
 
     const invokeScript = document.createElement("script");
     invokeScript.type = "text/javascript";

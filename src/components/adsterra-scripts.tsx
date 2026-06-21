@@ -1,4 +1,4 @@
-"use client";
+import Script from "next/script";
 
 export default function AdsterraScripts() {
   const adsEnabled = process.env.NEXT_PUBLIC_ADS_ENABLED === "true";
@@ -11,8 +11,22 @@ export default function AdsterraScripts() {
 
   return (
     <>
-      {popunderUrl && <script src={popunderUrl} async />}
-      {socialBarUrl && <script src={socialBarUrl} async />}
+      {popunderUrl && (
+        <Script
+          id="adsterra-popunder"
+          src={popunderUrl}
+          strategy="lazyOnload"
+          async
+        />
+      )}
+      {socialBarUrl && (
+        <Script
+          id="adsterra-social-bar"
+          src={socialBarUrl}
+          strategy="lazyOnload"
+          async
+        />
+      )}
     </>
   );
 }

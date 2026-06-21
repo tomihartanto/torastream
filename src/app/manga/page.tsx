@@ -14,8 +14,6 @@ import MangaCard from "@/components/manga-card";
 import AdSlot from "@/components/ad-slot";
 import MangaPageClient from "@/components/manga-page-client";
 
-export const dynamic = "force-dynamic";
-
 function ErrorFallback({ message = "Gagal memuat data. Coba lagi nanti." }: { message?: string }) {
   return (
     <div className="flex items-center justify-center py-12 text-sm text-zinc-500">

@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getAnimeById } from "@/lib/jikan";
 import WatchPageClient from "./watch-client";
@@ -20,7 +19,7 @@ export async function generateMetadata({ params }: WatchPageProps): Promise<Meta
 
 export default async function WatchPage({ params, searchParams }: WatchPageProps) {
   const { id } = await params;
-  const { ep, eptitle } = await searchParams;
+  const { ep } = await searchParams;
   const malId = parseInt(id, 10);
 
   let animeTitle = "Anime";
@@ -37,25 +36,16 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
   }
 
   return (
-    <div className="container mx-auto px-4 pt-4 pb-20 md:pb-12">
-      <Suspense
-        fallback={
-          <div className="space-y-4">
-            <div className="aspect-video animate-pulse rounded-xl bg-zinc-800" />
-            <div className="h-6 w-1/3 animate-pulse rounded bg-zinc-800" />
-            <div className="h-48 animate-pulse rounded-xl bg-zinc-800" />
-          </div>
-        }
-      >
+    <main className="min-h-dvh bg-zinc-950">
+      <div className="mx-auto w-full max-w-3xl px-4 py-6">
         <WatchPageClient
           malId={malId}
           animeTitle={animeTitle}
           animeImage={animeImage}
           totalEpisodes={totalEpisodes}
           currentEpisode={ep ? parseInt(ep, 10) : 1}
-          episodeTitle={eptitle || null}
         />
-      </Suspense>
-    </div>
+      </div>
+    </main>
   );
 }

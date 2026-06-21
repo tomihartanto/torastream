@@ -1,43 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cacheGet, cacheSet } from "@/lib/redis";
 
 const MANGADEX_COVER_BASE = "https://uploads.mangadex.org";
+const COVER_CACHE_TTL = 86_400; // 24h
 
-// Cache for cover images (in-memory, prevents duplicate fetches)
-const coverCache = new Map<string, { buffer: ArrayBuffer; contentType: string; timestamp: number }>();
-const COVER_CACHE_TTL = 300_000; // 5 minutes
+type CoverEntry = { base64: string; contentType: string };
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   const { path } = await params;
   const filePath = path.join("/");
+  // Validate path format: only allow alphanumeric, hyphens, slashes, dots, and underscores
+  if (!/^[a-zA-Z0-9\-/.]+$/.test(filePath) || filePath.includes("..")) {
+    return new NextResponse("Invalid path", { status: 400 });
+  }
   const upstreamUrl = `${MANGADEX_COVER_BASE}/${filePath}`;
 
-  // Check cache first
-  const cached = coverCache.get(filePath);
-  if (cached && Date.now() - cached.timestamp < COVER_CACHE_TTL) {
-    return new NextResponse(cached.buffer, {
+  // Cache (Redis when configured, in-memory fallback otherwise)
+  const cacheKey = `mangadex-cover:${filePath}`;
+  const cached = await cacheGet<CoverEntry>(cacheKey);
+  if (cached) {
+    const bytes = Buffer.from(cached.base64, "base64");
+    return new NextResponse(bytes, {
       status: 200,
       headers: {
         "Content-Type": cached.contentType,
-        "Cache-Control": "public, max-age=86400, immutable",
+        "Cache-Control": `public, max-age=${COVER_CACHE_TTL}, immutable`,
       },
     });
   }
 
   try {
     const res = await fetch(upstreamUrl, {
-      headers: {
-        "User-Agent": "ToraStream/1.0 (manga reader)",
-      },
-      signal: AbortSignal.timeout(8_000), // 8s timeout
+      headers: { "User-Agent": "ToraStream/1.0 (manga reader)" },
+      signal: AbortSignal.timeout(8_000),
     });
 
     if (!res.ok) {
-      // Return a 1x1 transparent placeholder instead of error
+      // Return a 1x1 transparent placeholder instead of erroring
       return new NextResponse(
-        Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64"),
+        Buffer.from(
+          "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+          "base64"
+        ),
         {
           status: 200,
           headers: {
@@ -49,24 +56,22 @@ export async function GET(
     }
 
     const contentType = res.headers.get("content-type") || "image/jpeg";
-    const buffer = await res.arrayBuffer();
+    const buffer = Buffer.from(await res.arrayBuffer());
 
-    // Cache the result
-    coverCache.set(filePath, { buffer, contentType, timestamp: Date.now() });
-
-    // Keep cache size reasonable
-    if (coverCache.size > 500) {
-      const oldest = [...coverCache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp);
-      for (let i = 0; i < 100; i++) {
-        coverCache.delete(oldest[i][0]);
-      }
+    // Persist to cache (skip if image is excessively large to avoid bloating Redis)
+    if (buffer.byteLength < 1_500_000) {
+      await cacheSet<CoverEntry>(
+        cacheKey,
+        { base64: buffer.toString("base64"), contentType },
+        COVER_CACHE_TTL
+      );
     }
 
     return new NextResponse(buffer, {
       status: 200,
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=86400, immutable",
+        "Cache-Control": `public, max-age=${COVER_CACHE_TTL}, immutable`,
       },
     });
   } catch {

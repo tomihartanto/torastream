@@ -19,9 +19,79 @@ Platform anime dan manga berbahasa Indonesia. Jelajahi katalog anime terlengkap,
 - **Styling:** Tailwind CSS v4
 - **UI Components:** shadcn/ui + Base UI
 - **API Anime:** [Jikan API (MyAnimeList)](https://docs.api.jikan.moe/)
-- **API Manga:** [MangaDex API](https://api.mangadex.org/)
-- **Database:** Neon PostgreSQL (via Prisma)
+- **API Manga:** [MangaDex API](https://api.mangadex.org/) + [Comick](https://api.comick.fun) (fallback)
+- **API Streaming:** [Consumet](https://github.com/consumet/consumet.ts) (lihat [Self-host Consumet](#self-host-consumet-api))
+- **Cache & Rate Limit:** [Upstash Redis](https://upstash.com) (opsional, ada fallback in-memory)
 - **Font:** Geist
+
+## Konfigurasi (`.env`)
+
+Salin `.env.example` ke `.env.local` lalu isi sesuai kebutuhan.
+
+| Variabel | Wajib | Keterangan |
+| --- | --- | --- |
+| `UPSTASH_REDIS_REST_URL` | Tidak | URL REST Upstash Redis. Jika kosong, fallback ke in-memory cache & rate limit (cukup untuk dev). |
+| `UPSTASH_REDIS_REST_TOKEN` | Tidak | Token REST Upstash Redis. |
+| `AI_API_KEY` | Tidak | API key untuk translate sinopsis en→id. Tanpa ini, sinopsis Inggris ditampilkan apa adanya. |
+| `AI_API_URL` | Tidak | Endpoint chat completions (default OpenAI-compatible). Contoh: `https://open.bigmodel.cn/api/paas/v4/chat/completions`. |
+| `AI_MODEL` | Tidak | Model untuk translate. Default: `glm-4.6`. |
+| `CONSUMET_API_URL` | Tidak | URL instance Consumet. Default `https://api.consumet.org` (sering down). Sangat disarankan untuk self-host. |
+| `NEXT_PUBLIC_MANGADEX_BASE_URL` | Tidak | Bisa diarahkan ke Cloudflare Worker proxy. |
+| `NEXT_PUBLIC_ADS_ENABLED` | Tidak | Set `true` untuk mengaktifkan Adsterra. |
+| `NEXT_PUBLIC_ADSTERRA_*` | Tidak | URL script Adsterra (popunder, social bar, banner, rectangle). |
+
+## Self-host Consumet API
+
+Endpoint publik Consumet (`api.consumet.org`) sering mengalami downtime dan
+rate-limit ketat. Untuk stabilitas watch page, deploy instance sendiri.
+
+1. **Via Docker (paling mudah):**
+
+   ```bash
+   docker run -d \
+     --name consumet \
+     -p 3000:3000 \
+     -e CORS_ALLOW_ORIGINS=* \
+     ghcr.io/consumet/consumet.ts:latest
+   ```
+
+2. **Via Vercel/Render** (gratis untuk pemakaian kecil):
+   - Fork https://github.com/consumet/consumet.ts
+   - Deploy ke platform pilihan, ikuti panduan di repo upstream.
+
+3. **Set env di ToraStream:**
+
+   ```
+   CONSUMET_API_URL=https://your-consumet.example.com
+   ```
+
+4. **Verifikasi:**
+
+   ```bash
+   curl https://your-consumet.example.com/meta/anilist/info/21
+   ```
+
+   Harus mengembalikan JSON info One Piece.
+
+## Cloudflare Worker untuk Proxy MangaDex
+
+Folder `workers/mangadex-proxy/` berisi Cloudflare Worker sederhana untuk
+me-proxy request ke MangaDex (berguna jika MangaDex diblokir di region Anda
+atau untuk konsolidasi IP rate-limit).
+
+1. Install [Wrangler](https://developers.cloudflare.com/workers/wrangler/): `npm i -g wrangler`
+2. Login: `wrangler login`
+3. Deploy dari folder `workers/mangadex-proxy`:
+
+   ```bash
+   wrangler deploy
+   ```
+
+4. Set env di ToraStream:
+
+   ```
+   NEXT_PUBLIC_MANGADEX_BASE_URL=https://mangadex-proxy.your-subdomain.workers.dev
+   ```
 
 ## Struktur Proyek
 
@@ -74,6 +144,9 @@ npm run dev
 
 - **[Jikan API](https://docs.api.jikan.moe/)** — Data anime dan manga dari MyAnimeList (tidak perlu API key)
 - **[MangaDex API](https://api.mangadex.org/)** — Data manga, chapter, dan halaman baca (tidak perlu API key)
+- **[Comick API](https://api.comick.fun)** — Sumber cadangan untuk chapter manga (otomatis dipakai saat MangaDex kosong/rate-limited)
+- **[Consumet API](https://github.com/consumet/consumet.ts)** — Streaming source anime (sebaiknya self-host, lihat di atas)
+- **[Upstash Redis](https://upstash.com)** — Cache distribusi + rate limiter (opsional)
 
 ## Deploy
 

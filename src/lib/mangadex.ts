@@ -1,65 +1,18 @@
 import { translateToId, cleanMangaDescription } from "./utils";
+import { cacheGet, cacheSet, throttle } from "./redis";
 
 const MANGADEX_BASE_URL =
-  process.env.NEXT_PUBLIC_MANGADEX_BASE_URL || "https://api.mangadex.org";
+  process.env.MANGADEX_BASE_URL || process.env.NEXT_PUBLIC_MANGADEX_BASE_URL || "https://api.mangadex.org";
 
-// Rate limiter: max 5 requests per second per IP (MangaDex limit)
-const requestQueue: (() => void)[] = [];
-let activeRequests = 0;
-let lastRequestTime = 0;
-const MAX_CONCURRENT = 3;
-const MIN_INTERVAL_MS = 250; // 250ms between requests = 4/s, safe under 5/s limit
-
-function scheduleRequest(): Promise<void> {
-  return new Promise((resolve) => {
-    const tryRun = () => {
-      if (activeRequests < MAX_CONCURRENT) {
-        const now = Date.now();
-        const elapsed = now - lastRequestTime;
-        if (elapsed < MIN_INTERVAL_MS) {
-          setTimeout(() => {
-            if (activeRequests < MAX_CONCURRENT) {
-              activeRequests++;
-              lastRequestTime = Date.now();
-              resolve();
-            } else {
-              requestQueue.push(tryRun);
-            }
-          }, MIN_INTERVAL_MS - elapsed);
-        } else {
-          activeRequests++;
-          lastRequestTime = Date.now();
-          resolve();
-        }
-      } else {
-        requestQueue.push(tryRun);
-      }
-    };
-    tryRun();
+// MangaDex allows ~5 req/s/IP. We throttle to 4/s for safety margin.
+// Throttle is enforced via Upstash (distributed) when available, with an
+// in-memory fallback so local dev keeps working without env vars.
+async function scheduleRequest(): Promise<void> {
+  await throttle("mangadex:global", {
+    limit: 4,
+    windowMs: 1000,
+    windowLabel: "1 s",
   });
-}
-
-function releaseRequest() {
-  activeRequests--;
-  if (requestQueue.length > 0) {
-    const next = requestQueue.shift();
-    if (next) next();
-  }
-}
-
-// Simple in-memory cache for deduplication within same request cycle
-const cache = new Map<string, { data: unknown; timestamp: number }>();
-const CACHE_TTL = 60_000; // 1 minute dedup cache
-const CACHE_MAX_SIZE = 200;
-
-function setCache(key: string, value: { data: unknown; timestamp: number }) {
-  cache.set(key, value);
-  if (cache.size > CACHE_MAX_SIZE) {
-    const oldest = [...cache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp);
-    for (let i = 0; i < 50 && i < oldest.length; i++) {
-      cache.delete(oldest[i][0]);
-    }
-  }
 }
 
 interface MangaDexResponse<T> {
@@ -283,49 +236,41 @@ async function fetchMangaDex<T>(
 ): Promise<MangaDexResponse<T>> {
   const url = `${MANGADEX_BASE_URL}${endpoint}`;
 
-  // Check dedup cache
-  const cacheKey = url;
-  const cached = cache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.data as MangaDexResponse<T>;
-  }
+  // Distributed dedup cache (1 min TTL)
+  const cacheKey = `mangadex:${url}`;
+  const cached = await cacheGet<T>(cacheKey);
+  if (cached) return cached as unknown as MangaDexResponse<T>;
 
-  // Rate limit
   await scheduleRequest();
 
-  try {
-    const res = await fetch(url, {
+  const doFetch = () =>
+    fetch(url, {
       next: { revalidate: revalidateSeconds },
-      headers: {
-        "User-Agent": "ToraStream/1.0 (manga reader)",
-      },
-      signal: AbortSignal.timeout(12_000), // 12s timeout
+      headers: { "User-Agent": "ToraStream/1.0 (manga reader)" },
+      signal: AbortSignal.timeout(12_000),
     });
 
+  try {
+    let res = await doFetch();
+
     if (res.status === 429) {
-      // Rate limited - wait and retry once
-      await new Promise((r) => setTimeout(r, 2000));
-      const retryRes = await fetch(url, {
-        next: { revalidate: revalidateSeconds },
-        headers: {
-          "User-Agent": "ToraStream/1.0 (manga reader)",
-        },
-        signal: AbortSignal.timeout(12_000),
-      });
-      if (!retryRes.ok) {
-        throw new Error(`MangaDex rate limited: ${retryRes.status}`);
+      const retryAfter = parseInt(res.headers.get("Retry-After") || "2", 10);
+      const waitMs = Math.min(Math.max(retryAfter, 1), 10) * 1000;
+      await new Promise((r) => setTimeout(r, waitMs));
+      res = await doFetch();
+      if (!res.ok) {
+        throw new Error(`MangaDex rate limited: ${res.status}`);
       }
-      const data = await retryRes.json();
-      setCache(cacheKey, { data, timestamp: Date.now() });
-      return data;
     }
 
     if (!res.ok) {
       throw new Error(`MangaDex API error: ${res.status}`);
     }
 
-    const data = await res.json();
-    setCache(cacheKey, { data, timestamp: Date.now() });
+    const data = (await res.json()) as MangaDexResponse<T>;
+    // Dedup cache is short-lived (60s) and independent from Next's
+    // revalidate cache. Keeps redundant concurrent calls cheap.
+    await cacheSet(cacheKey, data as unknown as T, 60);
     return data;
   } catch (error) {
     if (error instanceof DOMException && error.name === "TimeoutError") {
@@ -334,8 +279,6 @@ async function fetchMangaDex<T>(
     }
     console.error(`MangaDex fetch failed: ${endpoint}`, error);
     throw new Error("MangaDex API tidak dapat diakses. Coba lagi nanti.");
-  } finally {
-    releaseRequest();
   }
 }
 
@@ -472,16 +415,22 @@ export async function getChapterPages(
 ): Promise<{ pages: string[]; chapter: string | null; title: string | null }> {
   await scheduleRequest();
   try {
-    const res = await fetch(
-      `${MANGADEX_BASE_URL}/at-home/server/${chapterId}`,
-      {
-        next: { revalidate: 7200 },
-        headers: {
-          "User-Agent": "ToraStream/1.0 (manga reader)",
-        },
-        signal: AbortSignal.timeout(12_000),
-      }
-    );
+    const [res, chapterRes] = await Promise.all([
+      fetch(
+        `${MANGADEX_BASE_URL}/at-home/server/${chapterId}`,
+        {
+          next: { revalidate: 7200 },
+          headers: {
+            "User-Agent": "ToraStream/1.0 (manga reader)",
+          },
+          signal: AbortSignal.timeout(12_000),
+        }
+      ),
+      fetchMangaDex<MangaDexChapter>(
+        `/chapter/${chapterId}`,
+        7200
+      ),
+    ]);
 
     if (!res.ok) {
       throw new Error(`Gagal memuat halaman chapter (error ${res.status}). Coba lagi nanti.`);
@@ -497,11 +446,6 @@ export async function getChapterPages(
           (filename) => `${data.baseUrl}/data/${data.chapter.hash}/${filename}`
         );
 
-    const chapterRes = await fetchMangaDex<MangaDexChapter>(
-      `/chapter/${chapterId}`,
-      7200
-    );
-
     return {
       pages,
       chapter: chapterRes.data.attributes.chapter,
@@ -515,8 +459,6 @@ export async function getChapterPages(
       throw error;
     }
     throw new Error("Gagal memuat halaman chapter. MangaDex tidak dapat diakses. Coba lagi nanti.");
-  } finally {
-    releaseRequest();
   }
 }
 

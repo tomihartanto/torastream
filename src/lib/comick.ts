@@ -146,6 +146,40 @@ export async function getComickChapters(
   };
 }
 
+export async function getAllComickChapters(
+  comicHid: string,
+  maxChapters = 500
+): Promise<{ chapters: ComickChapterFormatted[]; total: number }> {
+  const first = await getComickChapters(comicHid, 1, 100);
+  if (first.total <= 100 || first.chapters.length >= Math.min(first.total, maxChapters)) {
+    return first;
+  }
+
+  const all = [...first.chapters];
+  const pages = Math.ceil(Math.min(first.total, maxChapters) / 100);
+  const remainingPages: number[] = [];
+  for (let p = 2; p <= pages; p++) remainingPages.push(p);
+
+  // Sequential to be gentle on Comick's API
+  for (const p of remainingPages) {
+    const batch = await getComickChapters(comicHid, p, 100);
+    all.push(...batch.chapters);
+  }
+
+  return { chapters: all, total: first.total };
+}
+
+export async function getComickByHid(
+  hid: string
+): Promise<ComickMangaFormatted | null> {
+  try {
+    const data = await fetchComick<{ comic: ComickManga }>(`/comic/${hid}`);
+    return data.comic ? formatManga(data.comic) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getComickChapterPages(
   chapterHid: string
 ): Promise<{ pages: string[]; chapter: string | null; title: string | null }> {
@@ -184,7 +218,7 @@ function formatManga(manga: ComickManga): ComickMangaFormatted {
     title: manga.title,
     coverUrl: cover ? `https://meo.comick.pictures/${cover}` : null,
     description: manga.desc || null,
-    status: manga.status === 1 ? "ongoing" : manga.status === 2 ? "completed" : "hiatus",
+    status: manga.status === 1 ? "ongoing" : manga.status === 2 ? "completed" : manga.status === 4 ? "hiatus" : "ongoing",
     year: manga.year,
     genres: manga.md_comic_md_genres?.map((g) => g.md_genres.name) || [],
     authors: [

@@ -16,20 +16,39 @@ interface BrowsePageProps {
 
 async function BrowseResults({ searchParams }: { searchParams: Awaited<BrowsePageProps["searchParams"]> }) {
   const { q, genre, season, status, page = "1" } = searchParams;
-  const pageNum = parseInt(page, 10);
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+
+  if (genre) {
+    const genreId = parseInt(genre, 10);
+    if (isNaN(genreId)) {
+      return (
+        <div className="flex items-center justify-center py-12 text-sm text-zinc-500">
+          <p>Parameter genre tidak valid.</p>
+        </div>
+      );
+    }
+  }
 
   let result;
 
-  if (q) {
-    result = await searchAnime(q, pageNum);
-  } else if (genre) {
-    result = await getAnimeByGenre(parseInt(genre, 10), pageNum);
-  } else if (season === "now") {
-    result = await getSeasonNow(pageNum);
-  } else if (status === "upcoming") {
-    result = await getUpcomingAnime(pageNum);
-  } else {
-    result = await getTopAnime(pageNum);
+  try {
+    if (q) {
+      result = await searchAnime(q, pageNum);
+    } else if (genre) {
+      result = await getAnimeByGenre(parseInt(genre, 10), pageNum);
+    } else if (season === "now") {
+      result = await getSeasonNow(pageNum);
+    } else if (status === "upcoming") {
+      result = await getUpcomingAnime(pageNum);
+    } else {
+      result = await getTopAnime(pageNum);
+    }
+  } catch {
+    return (
+      <div className="flex items-center justify-center py-12 text-sm text-zinc-500">
+        <p>Gagal memuat data. Coba lagi nanti.</p>
+      </div>
+    );
   }
 
   return (

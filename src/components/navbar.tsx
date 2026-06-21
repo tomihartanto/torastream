@@ -133,6 +133,7 @@ function DesktopSearch() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Cari anime, manga..."
+                  aria-label="Cari anime, manga"
                   className="flex-1 bg-transparent text-sm text-white placeholder:text-zinc-500 focus:outline-none"
                 />
                 <button
@@ -188,6 +189,15 @@ function MobileSearchOverlay({
   const [type, setType] = useState<"anime" | "manga">("anime");
   const router = useRouter();
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -242,6 +252,7 @@ function MobileSearchOverlay({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={`Cari ${type}...`}
+            aria-label={`Cari ${type}`}
             className="h-12 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-base text-white placeholder:text-zinc-500 focus:border-red-500 focus:outline-none"
           />
           <button

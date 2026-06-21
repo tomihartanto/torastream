@@ -53,7 +53,7 @@ async function fetchJikan<T>(endpoint: string): Promise<JikanResponse<T>> {
   return fetchWithRetry<JikanResponse<T>>(
     `${JIKAN_BASE_URL}${endpoint}`,
     { revalidate: 3600 },
-    1
+    0 // no retry — Jikan is slow, retrying makes it worse
   );
 }
 

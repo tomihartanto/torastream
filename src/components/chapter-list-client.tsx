@@ -3,6 +3,36 @@
 import { useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 
+function formatRelativeTime(dateStr: string): string {
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    const diffMonths = Math.floor(diffDays / 30);
+    const diffYears = Math.floor(diffDays / 365);
+
+    if (diffSeconds < 60) return "Baru saja";
+    if (diffMinutes < 60) return `${diffMinutes} menit lalu`;
+    if (diffHours < 24) return `${diffHours} jam lalu`;
+    if (diffDays < 30) return `${diffDays} hari lalu`;
+    if (diffMonths < 12) return `${diffMonths} bulan lalu`;
+    if (diffYears < 1) return `${diffMonths} bulan lalu`;
+    return date.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  } catch {
+    return "";
+  }
+}
+
+function getChapterLabel(ch: Chapter): string {
+  if (ch.chapter) return `Ch. ${ch.chapter}`;
+  if (ch.title) return ch.title;
+  return "Chapter";
+}
+
 interface Chapter {
   id: string;
   chapter: string | null;
@@ -10,6 +40,7 @@ interface Chapter {
   title: string | null;
   translatedLanguage: string;
   pages: number;
+  readableAt: string;
   scanlationGroup: string | null;
   source?: "mangadex" | "comick";
   comickHid?: string;
@@ -204,6 +235,9 @@ export default function ChapterListClient({
                   (ch.source || "mangadex") === "comick" && ch.comickHid
                     ? `/manga/read-comick/${ch.comickHid}/${ch.id}`
                     : `/manga/read/${mangaId}/${ch.id}`;
+                const label = getChapterLabel(ch);
+                const hasChapterTitle = ch.title && ch.chapter;
+                const relativeTime = ch.readableAt ? formatRelativeTime(ch.readableAt) : "";
                 return (
                   <Link
                     key={`${vol}-${ch.chapter || chIndex}-${ch.translatedLanguage}`}
@@ -213,17 +247,26 @@ export default function ChapterListClient({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-white">
-                          Ch. {ch.chapter || "N/A"}
+                          {label}
                         </span>
-                        {ch.title && (
+                        {hasChapterTitle && (
                           <span className="truncate text-xs text-zinc-500">- {ch.title}</span>
                         )}
                       </div>
-                      {ch.scanlationGroup && (
-                        <p className="mt-0.5 truncate text-[11px] text-zinc-600">
-                          {ch.scanlationGroup}
-                        </p>
-                      )}
+                      <div className="mt-0.5 flex items-center gap-2 text-[11px] text-zinc-600">
+                        {relativeTime && (
+                          <span>{relativeTime}</span>
+                        )}
+                        {ch.pages > 0 && (
+                          <span>{ch.pages} hal</span>
+                        )}
+                        {ch.scanlationGroup && (
+                          <>
+                            <span className="text-zinc-700">·</span>
+                            <span className="truncate">{ch.scanlationGroup}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${

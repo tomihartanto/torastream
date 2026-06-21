@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 
 interface HorizontalScrollProps {
@@ -13,12 +13,12 @@ export default function HorizontalScroll({ children, className }: HorizontalScro
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
-  const updateScrollIndicators = () => {
+  const updateScrollIndicators = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
     setCanScrollLeft(el.scrollLeft > 0);
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-  };
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -30,7 +30,7 @@ export default function HorizontalScroll({ children, className }: HorizontalScro
       el.removeEventListener("scroll", updateScrollIndicators);
       window.removeEventListener("resize", updateScrollIndicators);
     };
-  }, [children]);
+  }, [children, updateScrollIndicators]);
 
   return (
     <div className="group/scroll relative -mx-4 sm:mx-0 md:static">

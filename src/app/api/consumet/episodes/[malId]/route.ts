@@ -16,16 +16,14 @@ export async function GET(
 
   const data = await getAnimeEpisodesFromMalId(id);
 
-  if (!data) {
-    return NextResponse.json(
-      { error: "Failed to fetch episodes. The streaming API may be unavailable." },
-      { status: 502 }
-    );
-  }
-
-  return NextResponse.json(data, {
-    headers: {
-      "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=300",
-    },
-  });
+  // Return 200 with empty episodes when Consumet is down
+  // (client will auto-fallback to embed sources)
+  return NextResponse.json(
+    { episodes: data?.episodes || [] },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=300",
+      },
+    }
+  );
 }

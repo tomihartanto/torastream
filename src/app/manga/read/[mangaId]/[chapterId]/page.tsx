@@ -32,11 +32,29 @@ async function ChapterReaderData({
   mangaId: string;
   chapterId: string;
 }) {
-  const [chapterData, manga, chaptersData] = await Promise.all([
-    getChapterPages(chapterId),
-    getMangaDexById(mangaId),
-    getAllMangaChapters(mangaId, undefined, 500),
-  ]);
+  let chapterData, manga, chaptersData;
+  try {
+    [chapterData, manga, chaptersData] = await Promise.all([
+      getChapterPages(chapterId),
+      getMangaDexById(mangaId),
+      getAllMangaChapters(mangaId, undefined, 500),
+    ]);
+  } catch {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4">
+        <svg className="h-12 w-12 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p className="text-sm text-zinc-400">Gagal memuat chapter. Coba lagi nanti.</p>
+        <a
+          href={`/manga/mangadex/${mangaId}`}
+          className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"
+        >
+          Kembali ke Manga
+        </a>
+      </div>
+    );
+  }
 
   const { chapters } = chaptersData;
 
