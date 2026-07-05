@@ -24,6 +24,7 @@ export default function HeroCarousel({ animes }: HeroCarouselProps) {
             sizes="(max-width: 768px) 85vw, 20vw"
             priority={index === 0}
             className="object-cover transition-transform duration-500 group-hover:scale-105"
+            unoptimized
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4">

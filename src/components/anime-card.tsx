@@ -19,6 +19,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
           className="object-cover transition-all duration-500 group-hover:scale-110 group-hover:brightness-110"
+          unoptimized
         />
 
         {/* Gradient overlays */}

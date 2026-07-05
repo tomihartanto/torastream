@@ -40,6 +40,7 @@ async function AnimeInfo({ data }: { data: NonNullable<Awaited<ReturnType<typeof
             fill
             className="object-cover blur-2xl scale-110"
             aria-hidden
+            unoptimized
           />
           <div className="absolute inset-0 bg-zinc-950/80" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-950/50 to-zinc-950" />
@@ -56,6 +57,7 @@ async function AnimeInfo({ data }: { data: NonNullable<Awaited<ReturnType<typeof
                 sizes="(max-width: 640px) 160px, (max-width: 768px) 200px, 280px"
                 priority
                 className="object-cover"
+                unoptimized
               />
             </div>
 

@@ -16,6 +16,7 @@ export default function FeaturedBanner({ anime }: FeaturedBannerProps) {
         priority
         sizes="100vw"
         className="object-cover"
+        unoptimized
       />
 
       <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent" />
